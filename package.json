@@ -21,11 +21,8 @@
     "sinon": "^3.3.0"
   },
   "dependencies": {
-    "async": "*",
     "moment": "^2.19.2",
-    "request": "*",
-    "request-promise-native": "*",
-    "al-collector-js": "git://github.com/alertlogic/al-collector-js#master"
+    "request": "*"
   },
   "author": "Alert Logic Inc."
 }

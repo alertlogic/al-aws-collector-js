@@ -10,7 +10,6 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment');
-const async = require('async');
 
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
