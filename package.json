@@ -21,8 +21,7 @@
     "sinon": "^3.3.0"
   },
   "dependencies": {
-    "moment": "^2.19.2",
-    "request": "*"
+    "moment": "^2.19.2"
   },
   "author": "Alert Logic Inc."
 }
