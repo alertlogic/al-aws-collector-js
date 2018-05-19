@@ -21,7 +21,8 @@
     "sinon": "^3.3.0"
   },
   "dependencies": {
-    "moment": "^2.19.2"
+    "moment": "^2.19.2",
+    "al-collector-js": "git://github.com/alertlogic/al-collector-js#master"
   },
   "author": "Alert Logic Inc."
 }

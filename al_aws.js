@@ -7,6 +7,7 @@
  * @end
  * -----------------------------------------------------------------------------
  */
+'use strict';
 
 const AWS = require('aws-sdk');
 const moment = require('moment');
@@ -96,10 +97,20 @@ var arnToName = function (arn) {
     }
 };
 
+var arnToAccId = function (arn) {
+    const parsedArn = arn.split(':');
+    if (parsedArn.length > 4) {
+        return parsedArn[4];
+    } else {
+        return undefined;
+    }
+};
+
 module.exports = {
     getMetricStatistics : getMetricStatistics,
     getLambdaMetrics : getLambdaMetrics,
     getKinesisMetrics : getKinesisMetrics,
     selfUpdate : selfUpdate,
-    arnToName : arnToName
+    arnToName : arnToName,
+    arnToAccId : arnToAccId
 };
