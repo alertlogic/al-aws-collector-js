@@ -18,7 +18,22 @@ function setAlServiceStub() {
     alserviceStub.get = sinon.stub(m_servicec.AlServiceC.prototype, 'get').callsFake(
         function fakeFn(path, extraOptions) {
             return new Promise(function(resolve, reject) {
-                return resolve();
+            	var ret = null;
+            	switch (path) {
+	            	case '/residency/default/services/ingest/endpoint':
+	            		ret = {
+	            			ingest : 'new-ingest-endpoint'
+	            		};
+	            		break;
+	            	case '/residency/default/services/azcollect/endpoint':
+	            		ret = {
+	            			ingest : 'new-azcollect-endpoint'
+	            		};
+	            		break;
+	            	default:
+	            		break;
+            	}
+                return resolve(ret);
             });
         });
     alserviceStub.post = sinon.stub(m_servicec.AlServiceC.prototype, 'post').callsFake(
@@ -49,6 +64,10 @@ describe('al_aws_collector tests', function(done) {
 				Plaintext : 'decrypted-aims-sercret-key'
 			};
             return callback(null, data);
+        });
+		
+		AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
+            return callback(null, params);
         });
 		
 		setAlServiceStub();

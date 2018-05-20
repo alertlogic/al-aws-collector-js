@@ -106,11 +106,23 @@ var arnToAccId = function (arn) {
     }
 };
 
+var setEnv = function(vars, callback) {
+	const lambda = new AWS.Lambda();
+	var params = {
+		FunctionName : process.env.AWS_LAMBDA_FUNCTION_NAME,
+		Environment : {
+			Variables : vars
+		}
+	};
+    return lambda.updateFunctionConfiguration(params, callback);
+};
+
 module.exports = {
     getMetricStatistics : getMetricStatistics,
     getLambdaMetrics : getLambdaMetrics,
     getKinesisMetrics : getKinesisMetrics,
     selfUpdate : selfUpdate,
     arnToName : arnToName,
-    arnToAccId : arnToAccId
+    arnToAccId : arnToAccId,
+    setEnv : setEnv
 };

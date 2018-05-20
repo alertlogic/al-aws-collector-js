@@ -12,14 +12,14 @@
 const AWS = require('aws-sdk');
 const moment = require('moment');
 const zlib = require('zlib');
+const async = require('async');
 
 const m_alServiceC = require('al-collector-js/al_servicec');
 const m_alAws = require('./al_aws');
 
-const INGEST_ENDPOINT = process.env.ingest_api;
-const AZCOLLECT_ENDPOINT = process.env.azollect_api;
-
 let AIMS_DECRYPTED_CREDS;
+
+const AL_SERVICES = ['ingest', 'azcollect'];
 
 function getDescryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
@@ -80,12 +80,15 @@ class AlAwsCollector {
     	this._version = version;
     	this._region = process.env.AWS_REGION;
     	this._name = process.env.AWS_LAMBDA_FUNCTION_NAME;
-        this._alApiEndpoint = process.env.al_api;
-        this._alIngestEndpoint = process.env.ingest_api;
+        this._alDataResidency = 
+        	process.env.al_data_residency ?
+        		process.env.al_data_residency :
+        		'default';
         this._alAzcollectEndpoint = process.env.azollect_api;
         this._aimsc = new m_alServiceC.AimsC(process.env.al_api, aimsCreds);
+        this._endpointsc = new m_alServiceC.EndpointsC(process.env.al_api, this._aimsc);
         this._azcollectc = new m_alServiceC.AzcollectC(process.env.azollect_api, this._aimsc);
-        this._ingestc = new m_alServiceC.IngestC(process.env.azollect_api, this._aimsc);
+        this._ingestc = new m_alServiceC.IngestC(process.env.ingest_api, this._aimsc);
     }
     
     _getAttrs() {
@@ -99,7 +102,29 @@ class AlAwsCollector {
     }
     
     updateEndpoints(callback) {
-        return callback(null);
+    	var collector = this;
+    	async.map(AL_SERVICES,
+			function(service, mapCallback){
+    			collector._endpointsc.getEndpoint(service, collector._alDataResidency)
+	            .then(resp => {
+	                return mapCallback(null, resp);
+	            })
+	            .catch(function(exception) {
+	                return mapCallback(`Endpoints ${service} update failure ${exception}`);
+	            });
+        	},
+	        function (mapErr, mapResult) {
+	            if (mapErr) {
+	                return callback(mapErr);
+	            } else {
+	                var endpoints = {
+	                	ingest_api : mapResult[0].ingest,
+	                    azcollect : mapResult[1].azcollect
+	                };
+                	return m_alAws.setEnv(endpoints, callback);
+	            }
+        	}
+        );
     }
     
     register(custom, callback) {
