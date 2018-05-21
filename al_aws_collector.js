@@ -17,7 +17,7 @@ const async = require('async');
 const m_alServiceC = require('al-collector-js/al_servicec');
 const m_alAws = require('./al_aws');
 
-let AIMS_DECRYPTED_CREDS;
+var AIMS_DECRYPTED_CREDS = null;
 
 const AL_SERVICES = ['ingest', 'azcollect'];
 
@@ -167,19 +167,20 @@ class AlAwsCollector {
     
     send(data, callback){
         var collector = this;
+        var ingestType = collector._ingestType;
         
         zlib.deflate(data, function(compressionErr, compressed) {
             if (compressionErr) {
                 return callback(compressionErr);
             } else {
-                switch (collector._ingestType) {
+                switch (ingestType) {
                     case AlAwsCollector.IngestTypes.SECMSGS:
                         collector._ingestc.sendSecmsgs(compressed)
                         .then(resp => {
                             return callback(null, resp);
                         })
-                        .catch(exception =>{
-                            return callback('Ingest send failure:', exception);
+                        .catch(exception => {
+                            return callback(exception);
                         });
                         break;
                     case AlAwsCollector.IngestTypes.VPCFLOW:
@@ -187,12 +188,12 @@ class AlAwsCollector {
                         .then(resp => {
                             return callback(null, resp);
                         })
-                        .catch(exception =>{
-                            return callback('Ingest send failure:', exception);
+                        .catch(exception => {
+                            return callback(exception);
                         });
                         break;
                     default:
-                        return callback('Unknow Alertlogic ingestion type:', type);
+                        return callback(`Unknown Alertlogic ingestion type: ${ingestType}`);
                 }
             }
         });
@@ -212,6 +213,4 @@ class AlAwsCollector {
     }
 }
 
-module.exports = {
-    AlAwsCollector : AlAwsCollector
-};
+module.exports = AlAwsCollector;

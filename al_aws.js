@@ -50,7 +50,7 @@ var getMetricStatistics = function (params, statistics, callback) {
         return callback(null, statistics);
     });
 };
-
+    
 var getLambdaMetrics = function (functionName, metricName, statistics, callback) {
     var params = {
         Dimensions: [
@@ -107,13 +107,13 @@ var arnToAccId = function (arn) {
 };
 
 var setEnv = function(vars, callback) {
-	const lambda = new AWS.Lambda();
-	var params = {
-		FunctionName : process.env.AWS_LAMBDA_FUNCTION_NAME,
-		Environment : {
-			Variables : vars
-		}
-	};
+    const lambda = new AWS.Lambda();
+    var params = {
+        FunctionName : process.env.AWS_LAMBDA_FUNCTION_NAME,
+        Environment : {
+            Variables : vars
+        }
+    };
     return lambda.updateFunctionConfiguration(params, callback);
 };
 
