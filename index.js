@@ -8,5 +8,7 @@
  * -----------------------------------------------------------------------------
  */
 
-module.exports = require('./al_aws_collector');
-module.exports = require('./al_aws');
+module.exports = {
+	AlAwsCollector : require('./al_aws_collector'),
+	Util : require('./al_aws')
+};
