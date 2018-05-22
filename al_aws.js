@@ -7,6 +7,7 @@
  * @end
  * -----------------------------------------------------------------------------
  */
+'use strict';
 
 const AWS = require('aws-sdk');
 const moment = require('moment');
@@ -49,7 +50,7 @@ var getMetricStatistics = function (params, statistics, callback) {
         return callback(null, statistics);
     });
 };
-
+    
 var getLambdaMetrics = function (functionName, metricName, statistics, callback) {
     var params = {
         Dimensions: [
@@ -96,10 +97,32 @@ var arnToName = function (arn) {
     }
 };
 
+var arnToAccId = function (arn) {
+    const parsedArn = arn.split(':');
+    if (parsedArn.length > 4) {
+        return parsedArn[4];
+    } else {
+        return undefined;
+    }
+};
+
+var setEnv = function(vars, callback) {
+    const lambda = new AWS.Lambda();
+    var params = {
+        FunctionName : process.env.AWS_LAMBDA_FUNCTION_NAME,
+        Environment : {
+            Variables : vars
+        }
+    };
+    return lambda.updateFunctionConfiguration(params, callback);
+};
+
 module.exports = {
     getMetricStatistics : getMetricStatistics,
     getLambdaMetrics : getLambdaMetrics,
     getKinesisMetrics : getKinesisMetrics,
     selfUpdate : selfUpdate,
-    arnToName : arnToName
+    arnToName : arnToName,
+    arnToAccId : arnToAccId,
+    setEnv : setEnv
 };

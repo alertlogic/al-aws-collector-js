@@ -21,6 +21,8 @@
     "sinon": "^3.3.0"
   },
   "dependencies": {
+    "al-collector-js": "git://github.com/alertlogic/al-collector-js#master",
+    "async": "*",
     "moment": "^2.19.2"
   },
   "author": "Alert Logic Inc."

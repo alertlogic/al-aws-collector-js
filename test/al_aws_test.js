@@ -22,4 +22,21 @@ describe('al_aws Tests', function() {
             done();
         });
     });
+    
+    describe('arnToAccId() tests', function(done) {
+        it('Valid input', function(done) {
+            assert.equal(m_alAws.arnToAccId('arn:aws:iam::123456789101:role/testRole'), '123456789101');
+            assert.equal(m_alAws.arnToAccId('arn:aws:kinesis:us-east-1:123456789101:stream/test-KinesisStream'), '123456789101');
+            assert.equal(m_alAws.arnToAccId('arn:aws:sqs:us-east-1:352283894008:testSqs'), '352283894008');
+            assert.equal(m_alAws.arnToAccId('arn:aws:s3:::teambucket'), '');
+            done();
+        });
+        
+        it('Invalid input', function(done) {
+            assert.ifError(m_alAws.arnToAccId(''));
+            assert.ifError(m_alAws.arnToAccId('invalid'));
+            assert.ifError(m_alAws.arnToAccId('arn:aws:invalid'));
+            done();
+        });
+    });
 });
