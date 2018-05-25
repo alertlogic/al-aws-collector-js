@@ -36,7 +36,7 @@ function getDescryptedCredentials(callback) {
                         access_key_id: process.env.aims_access_key_id,
                         secret_key: data.Plaintext.toString('ascii')
                     };
-                    
+
                     return callback(null, AIMS_DECRYPTED_CREDS);
                 }
             });
@@ -72,7 +72,7 @@ class AlAwsCollector {
         })
     }
     
-    constructor(context, collectorType, ingestType, version, aimsCreds, formatFun) {
+    constructor(context, collectorType, ingestType, version, aimsCreds, formatFun, healthCheckFun) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
         this._collectorType = collectorType;
@@ -90,6 +90,7 @@ class AlAwsCollector {
         this._azcollectc = new m_alServiceC.AzcollectC(process.env.azollect_api, this._aimsc);
         this._ingestc = new m_alServiceC.IngestC(process.env.ingest_api, this._aimsc);
         this._formatFun = formatFun;
+        this._healthCheckFun = healthCheckFun;
     }
     
     _getAttrs() {
@@ -139,18 +140,31 @@ class AlAwsCollector {
                 return callback(exception);
             });
     }
-    
-    checkin(status, callback) {
-        const checkinValues = Object.assign(this._getAttrs(), status);
-        
-        // TODO: add stats, etc
-        this._azcollectc.doCheckin(checkinValues)
-        .then(resp => {
-            return callback(null);
-        })
-        .catch(exception => {
-            return callback(exception);
-        });
+
+    checkin(event, callback) {
+        // TODO: add stats
+        var collector = this;
+        async.waterfall([
+            function(asyncCallback) {
+                collector._healthCheckFun(event, asyncCallback);
+            },
+            function(healthStatus, asyncCallback) {
+                var status = {
+                    status : healthStatus.status,
+                    details : healthStatus.details,
+                    error_code: healthStatus.error_code
+                };
+                const checkinValues = Object.assign(collector._getAttrs(), status);
+                collector._azcollectc.doCheckin(checkinValues)
+                .then(resp => {
+                    return asyncCallback(null);
+                })
+                .catch(exception => {
+                    return asyncCallback(exception);
+                });
+            }
+        ],
+        callback);
     }
     
     deregister(custom, callback){
@@ -210,6 +224,10 @@ class AlAwsCollector {
             }
         ],
         callback);
+    }
+
+    selfUpdate(callback) {
+        m_alAws.selfUpdate(callback);
     }
 }
 

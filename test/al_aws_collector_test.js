@@ -93,9 +93,15 @@ describe('al_aws_collector tests', function(done) {
     });
     
     it('checkin success', function(done) {
+        var checkHealthFun = function(event, callback) {
+            return callback(null, {
+                status: 'ok',
+                details: []
+            });
+        };
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
-            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds);
+            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, checkHealthFun);
             const mockHealth = {
                 'status':'ok',
                 'details':[],
