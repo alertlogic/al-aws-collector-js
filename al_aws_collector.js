@@ -211,6 +211,10 @@ class AlAwsCollector {
         ],
         callback);
     }
+
+    selfUpdate(callback) {
+        m_alAws.selfUpdate(callback);
+    }
 }
 
 module.exports = AlAwsCollector;
