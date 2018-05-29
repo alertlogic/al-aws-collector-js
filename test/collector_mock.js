@@ -1,6 +1,6 @@
 const FUNCTION_NAME = 'test-VpcFlowCollectLambdaFunction';
 const S3_BUCKET = 'rcs-test-us-east-1';
-const S3_ZIPFILE = "collector.zip";
+const S3_ZIPFILE = 'collector.zip';
 process.env.AWS_REGION = 'us-east-1';
 process.env.AWS_LAMBDA_FUNCTION_NAME = FUNCTION_NAME;
 process.env.al_api = 'api.global-services.global.alertlogic.com';

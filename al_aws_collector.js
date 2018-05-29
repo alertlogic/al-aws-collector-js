@@ -121,7 +121,7 @@ class AlAwsCollector {
                 } else {
                     var endpoints = {
                         ingest_api : mapResult[0].ingest,
-                        azcollect : mapResult[1].azcollect
+                        azollect_api : mapResult[1].azcollect
                     };
                     return m_alAws.setEnv(endpoints, callback);
                 }

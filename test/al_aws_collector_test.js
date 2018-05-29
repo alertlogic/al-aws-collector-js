@@ -57,6 +57,28 @@ function restoreAlServiceStub() {
     alserviceStub.del.restore();
 }
 
+function mockLambdaUpdateFunctionCode() {
+    AWS.mock('Lambda', 'updateFunctionCode', function (params, callback) {
+        assert.equal(params.FunctionName, colMock.FUNCTION_NAME);
+        assert.equal(params.S3Bucket, colMock.S3_BUCKET);
+        assert.equal(params.S3Key, colMock.S3_ZIPFILE);
+        return callback(null, params);
+    });
+}
+
+function mockLambdaUpdateConfiguration() {
+    AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
+        assert.equal(params.FunctionName, colMock.FUNCTION_NAME);
+        assert.deepEqual(params.Environment, {
+            Variables: {
+                ingest_api: 'new-ingest-endpoint',
+                azollect_api: 'new-azcollect-endpoint'
+            }
+        });
+        return callback(null, params);
+    });
+}
+
 var formatFun = function (event, context, callback) {
     return callback(null);
 };
@@ -127,12 +149,7 @@ describe('al_aws_collector tests', function(done) {
     });
 
     it('self update success', function(done) {
-        AWS.mock('Lambda', 'updateFunctionCode', function (params, callback) {
-            assert.equal(params.FunctionName, colMock.FUNCTION_NAME);
-            assert.equal(params.S3Bucket, colMock.S3_BUCKET);
-            assert.equal(params.S3Key, colMock.S3_ZIPFILE);
-            return callback(null, params);
-        });
+        mockLambdaUpdateFunctionCode();
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
@@ -144,16 +161,7 @@ describe('al_aws_collector tests', function(done) {
     });
 
     it('updateEndpoints success', function(done) {
-        AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
-            assert.equal(params.FunctionName, colMock.FUNCTION_NAME);
-            assert.deepEqual(params.Environment, {
-                Variables: {
-                    ingest_api: 'new-ingest-endpoint',
-                    azcollect: 'new-azcollect-endpoint'
-                }
-            });
-            return callback(null, params);
-        });
+        mockLambdaUpdateConfiguration();
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
