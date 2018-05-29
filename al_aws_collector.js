@@ -13,6 +13,7 @@ const AWS = require('aws-sdk');
 const moment = require('moment');
 const zlib = require('zlib');
 const async = require('async');
+const response = require('cfn-response');
 
 const m_alServiceC = require('al-collector-js/al_servicec');
 const m_alAws = require('./al_aws');
@@ -120,7 +121,7 @@ class AlAwsCollector {
                 } else {
                     var endpoints = {
                         ingest_api : mapResult[0].ingest,
-                        azcollect : mapResult[1].azcollect
+                        azollect_api : mapResult[1].azcollect
                     };
                     return m_alAws.setEnv(endpoints, callback);
                 }
@@ -128,15 +129,15 @@ class AlAwsCollector {
         );
     }
     
-    register(custom, callback) {
+    register(event, context, custom) {
         const regValues = Object.assign(this._getAttrs(), custom);
 
         this._azcollectc.doRegistration(regValues)
             .then(resp => {
-                return callback(null);
+                return response.send(event, context, response.SUCCESS);
             })
             .catch(exception => {
-                return callback(exception);
+                return response.send(event, context, response.FAILED, {Error: exception});
             });
     }
     
@@ -153,15 +154,15 @@ class AlAwsCollector {
         });
     }
     
-    deregister(custom, callback){
+    deregister(event, context, custom){
         const regValues = Object.assign(this._getAttrs(), custom);
 
         this._azcollectc.doDeregistration(regValues)
             .then(resp => {
-                return callback(null);
+                return response.send(event, context, response.SUCCESS);
             })
             .catch(exception => {
-                return callback(exception);
+                return response.send(event, context, response.FAILED, {Error: exception});
             });
     }
     
