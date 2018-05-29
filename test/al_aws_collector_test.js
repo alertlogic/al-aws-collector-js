@@ -7,6 +7,7 @@ const AlAwsCollector = require('../al_aws_collector');
 var m_servicec = require('al-collector-js/al_servicec');
 var AWS = require('aws-sdk-mock');
 const colMock = require('./collector_mock');
+const zlib = require('zlib');
 
 const context = {
     invokedFunctionArn : colMock.FUNCTION_ARN
@@ -80,7 +81,7 @@ function mockLambdaUpdateConfiguration() {
 }
 
 var formatFun = function (event, context, callback) {
-    return callback(null);
+    return callback(null, event);
 };
 
 describe('al_aws_collector tests', function(done) {
@@ -172,22 +173,89 @@ describe('al_aws_collector tests', function(done) {
         });
     });
     
-    it('send secmsgs success', function(done) {
-        AlAwsCollector.load().then(function(creds) {
-            var collector = new AlAwsCollector(
-            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
-            collector.send('some-data', function(error) {
-                done();
+    describe('mocking ingestC', function(done) {
+        var ingestCSecmsgsStub;
+        var ingestCVpcFlowStub;
+        before(function() {
+            ingestCSecmsgsStub = sinon.stub(m_servicec.IngestC.prototype, 'sendSecmsgs').callsFake(
+                function fakeFn(data, callback) {
+                    return new Promise (function(resolve, reject) {
+                        resolve(null);
+                    });
+                });
+
+            ingestCVpcFlowStub = sinon.stub(m_servicec.IngestC.prototype, 'sendVpcFlow').callsFake(
+                function fakeFn(data, callback) {
+                    return new Promise (function(resolve, reject) {
+                        resolve(null);
+                    });
+                });
+        });
+        
+        after(function() {
+            ingestCSecmsgsStub.restore();
+            ingestCVpcFlowStub.restore();
+        });
+        
+        it('send secmsgs success', function(done) {
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
+                var data = 'some-data';
+                collector.send(data, function(error) {
+                    assert.ifError(error);
+                    sinon.assert.calledOnce(ingestCSecmsgsStub);
+                    zlib.deflate(data, function(compressionErr, compressed) {
+                        assert.ifError(compressionErr);
+                        sinon.assert.calledWith(ingestCSecmsgsStub, compressed);
+                        done();
+                    });
+                });
+            });
+        });
+
+        it('send vpcflow success', function(done) {
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.VPCFLOW, '1.0.0', creds);
+                var data = 'some-data';
+                collector.send(data, function(error) {
+                    assert.ifError(error);
+                    sinon.assert.calledOnce(ingestCVpcFlowStub);
+                    zlib.deflate(data, function(compressionErr, compressed) {
+                        assert.ifError(compressionErr);
+                        sinon.assert.calledWith(ingestCVpcFlowStub, compressed);
+                        done();
+                    });
+                });
             });
         });
     });
     
-    it('process success', function(done) {
-        AlAwsCollector.load().then(function(creds) {
-            var collector = new AlAwsCollector(
-            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
-                collector.process('some-data', {}, function(error) {
-                done();
+    describe('mocking send', function(done) {
+        var sendStub;
+        before(function() {
+            sendStub = sinon.stub(AlAwsCollector.prototype, 'send').callsFake(
+                function fakeFn(data, callback) {
+                    return callback(null, null);
+                });
+        });
+        
+        after(function() {
+            sendStub.restore();
+        });
+        
+        it('process success', function(done) {
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
+                var data = 'some-data';
+                collector.process(data, {}, function(error) {
+                    assert.ifError(error);
+                    sinon.assert.calledOnce(sendStub);
+                    sinon.assert.calledWith(sendStub, data);
+                    done();
+                });
             });
         });
     });
