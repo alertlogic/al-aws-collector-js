@@ -76,33 +76,96 @@ const DEREG_URL = REG_URL;
 const DEREG_PARAMS = REG_PARAMS;
 
 const CHECKIN_URL = '/aws/cwe/checkin/123456789012/us-east-1/' + encodeURIComponent(FUNCTION_NAME);
-const CHECKIN_PARAMS = {
-    'status':'ok',
-    'details':[],
-    'statistics': [
-        {
-            'Label':'Invocations',
-            'Datapoints':[
-                {'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}
-            ]
-        }
-    ]
+// const CHECKIN_PARAMS = {
+//     'status':'ok',
+//     'details':[],
+//     'statistics': [
+//         {
+//             'Label':'Invocations',
+//             'Datapoints':[
+//                 {'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}
+//             ]
+//         }
+//     ]
+// };
+const CHECKIN_TEST_EVENT = {
+    'RequestType': 'ScheduledEvent',
+    'Type': 'Checkin',
+    'AwsAccountId': '353333894008',
+    'StackName' : STACK_NAME,
+    'Region' : 'us-east-1'
 };
+
+
 const CHECKIN_AZCOLLECT_QUERY = {
     body: {
         version: '1.0.0',
         status: 'ok',
         error_code: undefined,
         details: [],
-        statistics: [
-            {
-                'Label':'Invocations',
-                'Datapoints':[
-                    {'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}
-                ]
-            }
-        ]
+        statistics: undefined
     }
+};
+
+const CF_DESCRIBE_STACKS_RESPONSE = {
+    'ResponseMetadata': {
+        'RequestId': 'f9f5e0e7-be24-11e7-9891-49fc9e4a2c65'
+    },
+    'Stacks': [
+        {
+            'StackId': STACK_ID,
+            'StackName': STACK_NAME,
+            'Description': 'Alert Logic template',
+            'Parameters': [],
+            'CreationTime': '2017-10-30T14:27:59.848Z',
+            'RollbackConfiguration': {},
+            'StackStatus': 'CREATE_COMPLETE',
+            'DisableRollback': false,
+            'NotificationARNs': [],
+            'Capabilities': [
+                'CAPABILITY_IAM'
+            ],
+            'Outputs': [],
+            'Tags': [],
+            'EnableTerminationProtection': false
+        }
+    ]
+};
+
+const CHECKIN_ERROR_AZCOLLECT_QUERY = {
+    body: {
+        version: '1.0.0',
+        status: 'error',
+        error_code: 'ALAWS00002',
+        details: [ 'CF stack has wrong status: FAILED' ],
+        statistics: undefined
+    }
+};
+
+const CF_DESCRIBE_STACKS_FAILED_RESPONSE = {
+  'ResponseMetadata': {
+    'RequestId': 'f9f5e0e7-be24-11e7-9891-49fc9e4a2c65'
+  },
+  'Stacks': [
+    {
+      'StackId': STACK_ID,
+      'StackName': STACK_NAME,
+      'Description': 'Alert Logic template',
+      'Parameters': [
+      ],
+      'CreationTime': '2017-10-30T14:27:59.848Z',
+      'RollbackConfiguration': {},
+      'StackStatus': 'FAILED',
+      'DisableRollback': false,
+      'NotificationARNs': [],
+      'Capabilities': [
+        'CAPABILITY_IAM'
+      ],
+      'Outputs': [],
+      'Tags': [],
+      'EnableTerminationProtection': false
+    }
+  ]
 };
 
 module.exports = {
@@ -110,6 +173,7 @@ module.exports = {
     FUNCTION_NAME : FUNCTION_NAME,
     S3_BUCKET : S3_BUCKET,
     S3_ZIPFILE : S3_ZIPFILE,
+    STACK_NAME : STACK_NAME,
 
     REGISTRATION_TEST_EVENT : REGISTRATION_TEST_EVENT,
     REG_URL : REG_URL,
@@ -121,6 +185,9 @@ module.exports = {
     DEREG_PARAMS : DEREG_PARAMS,
 
     CHECKIN_URL : CHECKIN_URL,
-    CHECKIN_PARAMS : CHECKIN_PARAMS,
-    CHECKIN_AZCOLLECT_QUERY : CHECKIN_AZCOLLECT_QUERY
+    CHECKIN_TEST_EVENT : CHECKIN_TEST_EVENT,
+    CHECKIN_AZCOLLECT_QUERY : CHECKIN_AZCOLLECT_QUERY,
+    CF_DESCRIBE_STACKS_RESPONSE : CF_DESCRIBE_STACKS_RESPONSE,
+    CHECKIN_ERROR_AZCOLLECT_QUERY : CHECKIN_ERROR_AZCOLLECT_QUERY,
+    CF_DESCRIBE_STACKS_FAILED_RESPONSE: CF_DESCRIBE_STACKS_FAILED_RESPONSE
 };
