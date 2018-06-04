@@ -22,7 +22,7 @@ var AIMS_DECRYPTED_CREDS = null;
 
 const AL_SERVICES = ['ingest', 'azcollect'];
 
-function getDescryptedCredentials(callback) {
+function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
         return callback(null, AIMS_DECRYPTED_CREDS);
     } else {
@@ -63,7 +63,7 @@ class AlAwsCollector {
     
     static load() {
         return new Promise(function(resolve, reject){
-            getDescryptedCredentials(function(err, creds){
+            getDecryptedCredentials(function(err, creds){
                 if (err){
                     reject(err);
                 } else {

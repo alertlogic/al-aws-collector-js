@@ -260,3 +260,74 @@ describe('al_aws_collector tests', function(done) {
         });
     });
 });
+
+
+describe('al_aws_collector tests for setDecryptedCredentials()', function() {
+    var rewireGetDecryptedCredentials;
+    var stub;
+
+    const ACCESS_KEY_ID = 'access_key_id';
+    const ENCRYPTED_SECRET_KEY = 'encrypted_secret_key';
+    const ENCRYPTED_SECRET_KEY_BASE64 = new Buffer(ENCRYPTED_SECRET_KEY).toString('base64');
+    const DECRYPTED_SECRET_KEY = 'secret_key';
+
+    before(function() {
+        collectRewire = rewire('../al_aws_collector');
+        rewireGetDecryptedCredentials = collectRewire.__get__('getDecryptedCredentials');
+    });
+
+    afterEach(function() {
+        AWS.restore('KMS', 'decrypt');
+    });
+
+    it('if AIMS_DECRYPTED_CREDS are declared already it returns ok', function(done) {
+        collectRewire.__set__('AIMS_DECRYPTED_CREDS', {
+            access_key_id : ACCESS_KEY_ID,
+            secret_key: DECRYPTED_SECRET_KEY
+        });
+        AWS.mock('KMS', 'decrypt', function (data, callback) {
+            throw Error('don\'t call me');
+        });
+        rewireGetDecryptedCredentials(function(err) { if (err === null) done(); });
+    });
+
+    it('if AIMS_DECRYPTED_CREDS are not declared KMS decryption is called', function(done) {
+        collectRewire.__set__('AIMS_DECRYPTED_CREDS', undefined);
+        collectRewire.__set__('process', {
+            env : {
+                aims_access_key_id : ACCESS_KEY_ID,
+                aims_secret_key: ENCRYPTED_SECRET_KEY_BASE64
+            }
+        });
+        AWS.mock('KMS', 'decrypt', function (data, callback) {
+            assert.equal(data.CiphertextBlob, ENCRYPTED_SECRET_KEY);
+            return callback(null, {Plaintext : DECRYPTED_SECRET_KEY});
+        });
+        rewireGetDecryptedCredentials(function(err) {
+            assert.equal(err, null);
+            assert.deepEqual(collectRewire.__get__('AIMS_DECRYPTED_CREDS'), {
+                access_key_id: ACCESS_KEY_ID,
+                secret_key: DECRYPTED_SECRET_KEY
+            });
+            done();
+        });
+    });
+
+    it('if some error during decryption, function fails', function(done) {
+        collectRewire.__set__('AIMS_DECRYPTED_CREDS', undefined);
+        collectRewire.__set__('process', {
+            env : {
+                aims_access_key_id : ACCESS_KEY_ID,
+                aims_secret_key: new Buffer('wrong_key').toString('base64')
+            }
+        });
+        AWS.mock('KMS', 'decrypt', function (data, callback) {
+            assert.equal(data.CiphertextBlob, 'wrong_key');
+            return callback('error', 'stack');
+        });
+        rewireGetDecryptedCredentials(function(err) {
+            assert.equal(err, 'error');
+            done();
+        });
+    });
+});
