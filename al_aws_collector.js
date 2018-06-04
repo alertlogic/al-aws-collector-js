@@ -17,6 +17,7 @@ const response = require('cfn-response');
 
 const m_alServiceC = require('al-collector-js/al_servicec');
 const m_alAws = require('./al_aws');
+const m_healthChecks = require('./health_checks');
 
 var AIMS_DECRYPTED_CREDS = null;
 
@@ -48,9 +49,15 @@ function getDecryptedCredentials(callback) {
  * Base class for AWS lambda based collectors
  *
  * @constructor
+ * @param {Object} context - context of Lambda's function.
+ * @param {string} collectorType - collector type (cwe as example).
+ * @param {string} ingestType - ingest data type (secmsgs, vpcflow, etc).
+ * @param {string} version - version of collector.
  * @param {Object} aimsCreds - Alert Logic API credentials.
- * @param {string} [aisCreds.access_key_id] - Alert Logic API access key id.
- * @param {string} [aisCreds.secret_key] - Alert Logic API secret key.
+ * @param {string} [aimsCreds.access_key_id] - Alert Logic API access key id.
+ * @param {string} [aimsCreds.secret_key] - Alert Logic API secret key.
+ * @param {function} formatFun - callback formatting function
+ * @param {Array.<function>} healthCheckFuns - list of custom health check functions (can be just empty, so only common are applied)
  *
  */
 class AlAwsCollector {
@@ -73,7 +80,7 @@ class AlAwsCollector {
         })
     }
     
-    constructor(context, collectorType, ingestType, version, aimsCreds, formatFun) {
+    constructor(context, collectorType, ingestType, version, aimsCreds, formatFun, healthCheckFuns) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
         this._collectorType = collectorType;
@@ -91,6 +98,7 @@ class AlAwsCollector {
         this._azcollectc = new m_alServiceC.AzcollectC(process.env.azollect_api, this._aimsc);
         this._ingestc = new m_alServiceC.IngestC(process.env.ingest_api, this._aimsc);
         this._formatFun = formatFun;
+        this._customHealthChecks = healthCheckFuns;
     }
     
     _getAttrs() {
@@ -141,16 +149,19 @@ class AlAwsCollector {
             });
     }
     
-    checkin(status, callback) {
-        const checkinValues = Object.assign(this._getAttrs(), status);
-        
+    checkin(event, context, callback) {
         // TODO: add stats, etc
-        this._azcollectc.doCheckin(checkinValues)
-        .then(resp => {
-            return callback(null);
-        })
-        .catch(exception => {
-            return callback(exception);
+        var collector = this;
+        var checks = this._customHealthChecks;
+        m_healthChecks.getHealthStatus(event, context, checks, function(status) {
+            const checkinValues = Object.assign(collector._getAttrs(), status);
+            collector._azcollectc.doCheckin(checkinValues)
+            .then(resp => {
+                return callback(null);
+            })
+            .catch(exception => {
+                return callback(exception);
+            });
         });
     }
     
