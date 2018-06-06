@@ -95,15 +95,14 @@ class AlAwsCollector {
         this._alAzcollectEndpoint = process.env.azollect_api;
         this._aimsc = new m_alServiceC.AimsC(process.env.al_api, aimsCreds);
         this._endpointsc = new m_alServiceC.EndpointsC(process.env.al_api, this._aimsc);
-        this._azcollectc = new m_alServiceC.AzcollectC(process.env.azollect_api, this._aimsc);
-        this._ingestc = new m_alServiceC.IngestC(process.env.ingest_api, this._aimsc);
+        this._azcollectc = new m_alServiceC.AzcollectC(process.env.azollect_api, this._aimsc, collectorType);
+        this._ingestc = new m_alServiceC.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
         this._formatFun = formatFun;
         this._customHealthChecks = healthCheckFuns;
     }
     
     _getAttrs() {
         return {
-            collectorType : this._collectorType,
             awsAccountId : m_alAws.arnToAccId(this._arn),
             region : this._region,
             functionName : this._name,
@@ -140,7 +139,7 @@ class AlAwsCollector {
     register(event, context, custom) {
         const regValues = Object.assign(this._getAttrs(), custom);
 
-        this._azcollectc.doRegistration(regValues)
+        this._azcollectc.register(regValues)
             .then(resp => {
                 return response.send(event, context, response.SUCCESS);
             })
@@ -155,7 +154,7 @@ class AlAwsCollector {
         var checks = this._customHealthChecks;
         m_healthChecks.getHealthStatus(event, context, checks, function(status) {
             const checkinValues = Object.assign(collector._getAttrs(), status);
-            collector._azcollectc.doCheckin(checkinValues)
+            collector._azcollectc.checkin(checkinValues)
             .then(resp => {
                 return callback(null);
             })
@@ -168,7 +167,7 @@ class AlAwsCollector {
     deregister(event, context, custom){
         const regValues = Object.assign(this._getAttrs(), custom);
 
-        this._azcollectc.doDeregistration(regValues)
+        this._azcollectc.deregister(regValues)
             .then(resp => {
                 return response.send(event, context, response.SUCCESS);
             })
