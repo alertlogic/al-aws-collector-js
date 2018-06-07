@@ -82,6 +82,14 @@ function mockLambdaUpdateConfiguration() {
     });
 }
 
+function mockLambdaMetricStatistics() {
+    AWS.mock('CloudWatch', 'getMetricStatistics', function (params, callback) {
+        var ret = colMock.CLOUDWATCH_GET_METRIC_STATS_OK;
+        ret.Label = params.MetricName;
+        return callback(null, ret);
+    });
+}
+
 var formatFun = function (event, context, callback) {
     return callback(null, event);
 };
@@ -120,14 +128,15 @@ describe('al_aws_collector tests', function(done) {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
-            collector.register(colMock.REGISTRATION_TEST_EVENT, context, colMock.REG_PARAMS);
+            collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
         });
     });
 
     describe('checkin success', function(done) {
 
         var context = {
-            invokedFunctionArn : colMock.FUNCTION_ARN
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
         };
 
         before(function() {
@@ -135,18 +144,19 @@ describe('al_aws_collector tests', function(done) {
                 assert.equal(params.StackName, colMock.STACK_NAME);
                 return callback(null, colMock.CF_DESCRIBE_STACKS_RESPONSE);
             });
+            mockLambdaMetricStatistics();
         });
 
         after(function() {
             AWS.restore('CloudFormation', 'describeStacks');
+            AWS.restore('CloudWatch', 'getMetricStatistics');
         });
 
         it('checkin success', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
-                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, []);
-
-                collector.checkin(colMock.CHECKIN_TEST_EVENT, context, function(error) {
+                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                collector.checkin(function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
                     done();
@@ -156,17 +166,17 @@ describe('al_aws_collector tests', function(done) {
 
         it('checkin with custom check success', function(done) {
             AlAwsCollector.load().then(function(creds) {
-                var spyHealthCheck = sinon.spy(function(event, context, callback) {
+                var spyHealthCheck = sinon.spy(function(callback) {
                     return callback(null);
                 });
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0',
-                    creds, undefined, [spyHealthCheck]
+                    creds, undefined, [spyHealthCheck], []
                 );
-                collector.checkin(colMock.CHECKIN_TEST_EVENT, context, function(error) {
+                collector.checkin(function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledOnce(spyHealthCheck);
-                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
+                    // sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
                     done();
                 });
             });
@@ -174,25 +184,21 @@ describe('al_aws_collector tests', function(done) {
 
         it('checkin with custom check error', function(done) {
             AlAwsCollector.load().then(function(creds) {
-                var spyHealthCheck = sinon.spy(function(event, context, callback) {
+                var spyHealthCheck = sinon.spy(function(callback) {
                     return callback(m_healthChecks.errorMsg('MYCODE', 'error message'));
                 });
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0',
-                    creds, undefined, [spyHealthCheck]
+                    creds, undefined, [spyHealthCheck], []
                 );
-                collector.checkin(colMock.CHECKIN_TEST_EVENT, context, function(error) {
+                collector.checkin(function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledOnce(spyHealthCheck);
-                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, {
-                        body: {
-                            version: '1.0.0',
-                            status: 'error',
-                            error_code: 'MYCODE',
-                            details: [ 'error message' ],
-                            statistics: undefined
-                        }
-                    });
+                    sinon.assert.calledWith(
+                        alserviceStub.post,
+                        colMock.CHECKIN_URL,
+                        colMock.CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR
+                    );
                     done();
                 });
             });
@@ -202,7 +208,8 @@ describe('al_aws_collector tests', function(done) {
     describe('checkin error', function(done) {
 
         var context = {
-            invokedFunctionArn : colMock.FUNCTION_ARN
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
         };
 
         before(function() {
@@ -210,17 +217,18 @@ describe('al_aws_collector tests', function(done) {
                 assert.equal(params.StackName, colMock.STACK_NAME);
                 return callback(null, colMock.CF_DESCRIBE_STACKS_FAILED_RESPONSE);
             });
+            mockLambdaMetricStatistics();
         });
 
         after(function() {
             AWS.restore('CloudFormation', 'describeStacks');
         });
 
-        it('checkin error', function(done) {
+        it('checkin error with healthCheck', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
-                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, []);
-                collector.checkin(colMock.CHECKIN_TEST_EVENT, context, function(error) {
+                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                collector.checkin(function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledWith(
                         alserviceStub.post,
@@ -244,7 +252,7 @@ describe('al_aws_collector tests', function(done) {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
-            collector.deregister(colMock.DEREGISTRATION_TEST_EVENT, context, colMock.DEREG_PARAMS);
+            collector.deregister(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
         });
     });
 
@@ -349,7 +357,7 @@ describe('al_aws_collector tests', function(done) {
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
                 var data = 'some-data';
-                collector.process(data, {}, function(error) {
+                collector.process(data, function(error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(sendStub);
                     sinon.assert.calledWith(sendStub, data);

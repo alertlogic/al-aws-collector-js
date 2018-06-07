@@ -1,6 +1,7 @@
 const FUNCTION_NAME = 'test-VpcFlowCollectLambdaFunction';
 const S3_BUCKET = 'rcs-test-us-east-1';
 const S3_ZIPFILE = 'collector.zip';
+const STACK_NAME = 'test-stack-01';
 process.env.AWS_REGION = 'us-east-1';
 process.env.AWS_LAMBDA_FUNCTION_NAME = FUNCTION_NAME;
 process.env.al_api = 'api.global-services.global.alertlogic.com';
@@ -9,6 +10,7 @@ process.env.azollect_api = 'azcollect.global-services.global.alertlogic.com';
 process.env.aims_access_key_id = 'aims-key-id';
 process.env.aims_secret_key = 'aims-secret-key-encrypted';
 process.env.aws_lambda_s3_bucket = S3_BUCKET;
+process.env.stack_name = STACK_NAME;
 process.env.aws_lambda_zipfile_name = S3_ZIPFILE;
 
 
@@ -18,7 +20,6 @@ const AIMS_TEST_CREDS = {
 };
 
 const FUNCTION_ARN = 'arn:aws:lambda:us-east-1:123456789012:function:' + encodeURIComponent(FUNCTION_NAME);
-const STACK_NAME = 'test-stack-01';
 const STACK_ID = 'arn:aws:cloudformation:us-east-1:123456789012:stack/test/12345c90-bd7e-11e7-9e43-503abe701cfd';
 
 
@@ -103,7 +104,23 @@ const CHECKIN_AZCOLLECT_QUERY = {
         status: 'ok',
         error_code: undefined,
         details: [],
-        statistics: undefined
+        statistics:[
+            {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
+            {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
+        ]
+    }
+};
+
+const CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR = {
+    body: {
+        version: '1.0.0',
+        status: 'error',
+        error_code: 'MYCODE',
+        details: [ 'error message' ],
+        statistics:[
+            {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
+            {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
+        ]
     }
 };
 
@@ -138,7 +155,10 @@ const CHECKIN_ERROR_AZCOLLECT_QUERY = {
         status: 'error',
         error_code: 'ALAWS00002',
         details: [ 'CF stack has wrong status: FAILED' ],
-        statistics: undefined
+        statistics:[
+            {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
+            {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
+        ]
     }
 };
 
@@ -168,6 +188,17 @@ const CF_DESCRIBE_STACKS_FAILED_RESPONSE = {
   ]
 };
 
+const CLOUDWATCH_GET_METRIC_STATS_OK = {
+    'Datapoints': [
+        {
+            'Timestamp': '2017-11-21T16:40:00Z', 
+            'Sum': 1.0, 
+            'Unit': 'Count'
+        }
+    ], 
+    'Label': 'Invocations'
+};
+
 module.exports = {
     FUNCTION_ARN : FUNCTION_ARN,
     FUNCTION_NAME : FUNCTION_NAME,
@@ -185,9 +216,10 @@ module.exports = {
     DEREG_PARAMS : DEREG_PARAMS,
 
     CHECKIN_URL : CHECKIN_URL,
-    CHECKIN_TEST_EVENT : CHECKIN_TEST_EVENT,
     CHECKIN_AZCOLLECT_QUERY : CHECKIN_AZCOLLECT_QUERY,
+    CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR : CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR,
     CF_DESCRIBE_STACKS_RESPONSE : CF_DESCRIBE_STACKS_RESPONSE,
     CHECKIN_ERROR_AZCOLLECT_QUERY : CHECKIN_ERROR_AZCOLLECT_QUERY,
-    CF_DESCRIBE_STACKS_FAILED_RESPONSE: CF_DESCRIBE_STACKS_FAILED_RESPONSE
+    CF_DESCRIBE_STACKS_FAILED_RESPONSE: CF_DESCRIBE_STACKS_FAILED_RESPONSE,
+    CLOUDWATCH_GET_METRIC_STATS_OK : CLOUDWATCH_GET_METRIC_STATS_OK
 };

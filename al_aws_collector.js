@@ -18,6 +18,7 @@ const response = require('cfn-response');
 const m_alServiceC = require('al-collector-js/al_servicec');
 const m_alAws = require('./al_aws');
 const m_healthChecks = require('./health_checks');
+const m_stats = require('./statistics');
 
 var AIMS_DECRYPTED_CREDS = null;
 
@@ -58,6 +59,7 @@ function getDecryptedCredentials(callback) {
  * @param {string} [aimsCreds.secret_key] - Alert Logic API secret key.
  * @param {function} formatFun - callback formatting function
  * @param {Array.<function>} healthCheckFuns - list of custom health check functions (can be just empty, so only common are applied)
+ * @param {Array.<function>} statsFuns - list of custom stats functions (can be just empty, so only common are applied)
  *
  */
 class AlAwsCollector {
@@ -80,7 +82,7 @@ class AlAwsCollector {
         })
     }
     
-    constructor(context, collectorType, ingestType, version, aimsCreds, formatFun, healthCheckFuns) {
+    constructor(context, collectorType, ingestType, version, aimsCreds, formatFun, healthCheckFuns, statsFuns) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
         this._collectorType = collectorType;
@@ -99,6 +101,7 @@ class AlAwsCollector {
         this._ingestc = new m_alServiceC.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
         this._formatFun = formatFun;
         this._customHealthChecks = healthCheckFuns;
+        this._customStatsFuns = statsFuns;
     }
     
     _getAttrs() {
@@ -136,7 +139,8 @@ class AlAwsCollector {
         );
     }
     
-    register(event, context, custom) {
+    register(event, custom) {
+        const context = this._invokeContext;
         const regValues = Object.assign(this._getAttrs(), custom);
 
         this._azcollectc.register(regValues)
@@ -148,23 +152,45 @@ class AlAwsCollector {
             });
     }
     
-    checkin(event, context, callback) {
-        // TODO: add stats, etc
+    checkin(callback) {
         var collector = this;
-        var checks = this._customHealthChecks;
-        m_healthChecks.getHealthStatus(event, context, checks, function(status) {
-            const checkinValues = Object.assign(collector._getAttrs(), status);
-            collector._azcollectc.checkin(checkinValues)
-            .then(resp => {
-                return callback(null);
-            })
-            .catch(exception => {
-                return callback(exception);
-            });
+        const context = this._invokeContext;
+        const checks = this._customHealthChecks;
+        const statsFuns = this._customStatsFuns;
+
+        async.parallel([
+            function(asyncCallback) {
+                m_healthChecks.getHealthStatus(context, checks, function(err, healthStatus) {
+                    return asyncCallback(err, healthStatus);
+                });
+            },
+            function(asyncCallback) {
+                m_stats.getStatistics(context, statsFuns, function(err, response) {
+                    return asyncCallback(err, {statistics : response});
+                });
+            }
+        ],
+        function(err, checkinParts) {
+            if (err) {
+                console.error('ALAWS00003 checkin failed with', err);
+                return callback(err);
+            } else {
+                const checkin = Object.assign(
+                    collector._getAttrs(), checkinParts[0], checkinParts[1]
+                );
+                collector._azcollectc.checkin(checkin)
+                .then(resp => {
+                    return callback(null);
+                })
+                .catch(exception => {
+                    return callback(exception);
+                });
+            }
         });
     }
     
-    deregister(event, context, custom){
+    deregister(event, custom){
+        const context = this._invokeContext;
         const regValues = Object.assign(this._getAttrs(), custom);
 
         this._azcollectc.deregister(regValues)
@@ -210,7 +236,8 @@ class AlAwsCollector {
         });
     }
     
-    process(event, context, callback) {
+    process(event, callback) {
+        const context = this._invokeContext;
         var collector = this;
         async.waterfall([
             function(asyncCallback) {
