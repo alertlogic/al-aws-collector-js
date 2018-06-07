@@ -151,41 +151,37 @@ class AlAwsCollector {
                 return response.send(event, context, response.FAILED, {Error: exception});
             });
     }
-    
+
     checkin(callback) {
         var collector = this;
         const context = this._invokeContext;
         const checks = this._customHealthChecks;
         const statsFuns = this._customStatsFuns;
 
+        //it is assumed that all functions here always return err != null
         async.parallel([
             function(asyncCallback) {
                 m_healthChecks.getHealthStatus(context, checks, function(err, healthStatus) {
-                    return asyncCallback(err, healthStatus);
+                    return asyncCallback(null, healthStatus);
                 });
             },
             function(asyncCallback) {
-                m_stats.getStatistics(context, statsFuns, function(err, response) {
-                    return asyncCallback(err, {statistics : response});
+                m_stats.getStatistics(context, statsFuns, function(err, statistics) {
+                    return asyncCallback(null, statistics);
                 });
             }
         ],
         function(err, checkinParts) {
-            if (err) {
-                console.error('ALAWS00003 checkin failed with', err);
-                return callback(err);
-            } else {
-                const checkin = Object.assign(
-                    collector._getAttrs(), checkinParts[0], checkinParts[1]
-                );
-                collector._azcollectc.checkin(checkin)
-                .then(resp => {
-                    return callback(null);
-                })
-                .catch(exception => {
-                    return callback(exception);
-                });
-            }
+            const checkin = Object.assign(
+                collector._getAttrs(), checkinParts[0], checkinParts[1]
+            );
+            collector._azcollectc.checkin(checkin)
+            .then(resp => {
+                return callback(null);
+            })
+            .catch(exception => {
+                return callback(exception);
+            });
         });
     }
     

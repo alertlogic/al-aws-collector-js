@@ -27,7 +27,15 @@ function getStatistics(context, statsFuns, callback) {
             );
         }
     ].concat(statsFuns);
-    async.parallel(allFuns, callback);
+    async.parallel(allFuns,
+        function(err, response) {
+            if (err) {
+                return callback(null, {statistics : []});
+            } else {
+                return callback(null, {statistics : response});
+            }
+        }
+    );
 }
 
 
