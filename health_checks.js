@@ -28,8 +28,7 @@ const async = require('async');
  *
  */
 
-function checkCloudFormationStatus(event, context, callback) {
-    var stackName = event.StackName;
+function checkCloudFormationStatus(stackName, callback) {
     var cloudformation = new AWS.CloudFormation();
     cloudformation.describeStacks({StackName: stackName}, function(err, data) {
         if (err) {
@@ -51,15 +50,12 @@ function checkCloudFormationStatus(event, context, callback) {
     });
 }
 
-function getHealthStatus(event, context, customChecks, callback) {
-    customChecksFuns = customChecks.map(f => function(asyncCallback) {
-        f(event, context, asyncCallback)
-    });
+function getHealthStatus(context, customChecks, callback) {
     async.parallel([
         function(asyncCallback) {
-            checkCloudFormationStatus(event, context, asyncCallback);
+            checkCloudFormationStatus(process.env.stack_name, asyncCallback);
         }
-    ].concat(customChecksFuns),
+    ].concat(customChecks),
     function(errMsg) {
         var status = {};
         if (errMsg) {
@@ -75,7 +71,7 @@ function getHealthStatus(event, context, customChecks, callback) {
                 details: []
             };
         }
-        return callback(status);
+        return callback(null, status);
     });
 }
 

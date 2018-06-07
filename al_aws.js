@@ -33,6 +33,9 @@ var selfUpdate = function (callback) {
     });
 };
 
+
+//DEPRECATED FUNCTION
+//please use statistics_templates.js instead
 var getMetricStatistics = function (params, statistics, callback) {
     var cloudwatch = new AWS.CloudWatch({apiVersion: '2010-08-01'});
     cloudwatch.getMetricStatistics(params, function(err, data) {
@@ -50,7 +53,9 @@ var getMetricStatistics = function (params, statistics, callback) {
         return callback(null, statistics);
     });
 };
-    
+
+//DEPRECATED FUNCTION
+//please use statistics_templates.js instead
 var getLambdaMetrics = function (functionName, metricName, statistics, callback) {
     var params = {
         Dimensions: [
@@ -69,6 +74,8 @@ var getLambdaMetrics = function (functionName, metricName, statistics, callback)
     return getMetricStatistics(params, statistics, callback);
 };
 
+//DEPRECATED FUNCTION
+//please use statistics_templates.js instead
 var getKinesisMetrics = function (streamName, metricName, statistics, callback) {
     var params = {
         Dimensions: [
@@ -118,11 +125,14 @@ var setEnv = function(vars, callback) {
 };
 
 module.exports = {
-    getMetricStatistics : getMetricStatistics,
-    getLambdaMetrics : getLambdaMetrics,
-    getKinesisMetrics : getKinesisMetrics,
     selfUpdate : selfUpdate,
     arnToName : arnToName,
     arnToAccId : arnToAccId,
-    setEnv : setEnv
+    setEnv : setEnv,
+
+    //DEPRECATED FUNCTIONS
+    //please use statistics_templates.js instead
+    getMetricStatistics : getMetricStatistics,
+    getLambdaMetrics : getLambdaMetrics,
+    getKinesisMetrics : getKinesisMetrics
 };
