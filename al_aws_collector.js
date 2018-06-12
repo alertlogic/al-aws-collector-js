@@ -109,7 +109,8 @@ class AlAwsCollector {
             awsAccountId : m_alAws.arnToAccId(this._arn),
             region : this._region,
             functionName : this._name,
-            version : this._version
+            version : this._version,
+            dataType : this._ingestType
         };
     }
     
