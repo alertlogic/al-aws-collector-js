@@ -1,6 +1,8 @@
 const FUNCTION_NAME = 'test-VpcFlowCollectLambdaFunction';
 const S3_BUCKET = 'rcs-test-us-east-1';
 const S3_ZIPFILE = 'collector.zip';
+const S3_CONFIGURATION_BUCKET = S3_BUCKET;
+const S3_CONFIGURATION_FILE_NAME = "configs/lambda/al-cwl-collector.json";
 const STACK_NAME = 'test-stack-01';
 process.env.AWS_REGION = 'us-east-1';
 process.env.AWS_LAMBDA_FUNCTION_NAME = FUNCTION_NAME;
@@ -12,6 +14,7 @@ process.env.aims_secret_key = 'aims-secret-key-encrypted';
 process.env.aws_lambda_s3_bucket = S3_BUCKET;
 process.env.stack_name = STACK_NAME;
 process.env.aws_lambda_zipfile_name = S3_ZIPFILE;
+process.env.aws_lambda_update_config_name = S3_CONFIGURATION_FILE_NAME;
 
 
 const AIMS_TEST_CREDS = {
@@ -199,6 +202,96 @@ const CLOUDWATCH_GET_METRIC_STATS_OK = {
     'Label': 'Invocations'
 };
 
+const S3_CONFIGURATION_FILE_NOCHANGE = {
+    "Runtime": {
+        "path": "Runtime",
+        "value": "nodejs6.10"
+    },
+    "Timeout": {
+        "path": "Timeout",
+        "value": 3
+    }
+};
+
+const S3_CONFIGURATION_FILE_CHANGE = {
+    "Runtime": {
+        "path": "Runtime",
+        "value": "nodejs8.10"
+    },
+    "Timeout": {
+        "path": "Timeout",
+        "value": 5
+    },
+    "NewVariableX": {
+        "path": "Environment.Variables.x",
+        "value": "XXXX"
+    },
+    "ChangeVariableAlApi": {
+        "path": "Environment.Variables.al_api",
+        "value": "new al_api value"
+    }
+};
+
+const LAMBDA_FUNCTION_CONFIGURATION = {
+    FunctionName: FUNCTION_NAME,
+    FunctionArn: FUNCTION_ARN,
+    Runtime: 'nodejs6.10',
+    Role: 'arn:aws:iam::352283894008:role/tdosoudil-vpc-lambda',
+    Handler: 'index.handler',
+    CodeSize: 834,
+    Description: '',
+    Timeout: 3,
+    MemorySize: 128,
+    LastModified: '2018-06-15T07:44:59.223+0000',
+    CodeSha256: 'o/eUfWe7Vax8Etqx/CCLgwhuyVHKHlqeU5Ur2UnY7kU=',
+    Version: '$LATEST',
+    VpcConfig: { SubnetIds: [], SecurityGroupIds: [], VpcId: '' },
+    Environment: { 
+        Variables: { 
+            aims_access_key_id: AIMS_TEST_CREDS.access_key_id,
+            aims_secret_key: AIMS_TEST_CREDS.secret_key,
+            al_api: process.env.al_api,
+            aws_lambda_s3_bucket: S3_BUCKET,
+            aws_lambda_zipfile_name: S3_ZIPFILE,
+            azollect_api: process.env.azollect_api,
+            ingest_api: process.env.ingest_api 
+        } 
+    },
+    TracingConfig: { Mode: 'PassThrough' },
+    RevisionId: '255d5791-94fb-4190-8626-846615597187' 
+};
+
+const LAMBDA_FUNCTION_CONFIGURATION_CHANGED = {
+    FunctionName: FUNCTION_NAME,
+    FunctionArn: FUNCTION_ARN,
+    Runtime: 'nodejs8.10',
+    Role: 'arn:aws:iam::352283894008:role/tdosoudil-vpc-lambda',
+    Handler: 'index.handler',
+    CodeSize: 834,
+    Description: '',
+    Timeout: 5,
+    MemorySize: 128,
+    LastModified: '2018-06-15T07:44:59.223+0000',
+    CodeSha256: 'o/eUfWe7Vax8Etqx/CCLgwhuyVHKHlqeU5Ur2UnY7kU=',
+    Version: '$LATEST',
+    VpcConfig: { SubnetIds: [], SecurityGroupIds: [], VpcId: '' },
+    Environment: { 
+        Variables: { 
+            aims_access_key_id: AIMS_TEST_CREDS.access_key_id,
+            aims_secret_key: AIMS_TEST_CREDS.secret_key,
+            al_api: 'new al_api value',
+            aws_lambda_s3_bucket: S3_BUCKET,
+            aws_lambda_zipfile_name: S3_ZIPFILE,
+            azollect_api: process.env.azollect_api,
+            ingest_api: process.env.ingest_api,
+            x: 'XXXX'
+        } 
+    },
+    TracingConfig: { Mode: 'PassThrough' },
+    RevisionId: '255d5791-94fb-4190-8626-846615597187' 
+};
+
+
 module.exports = {
     FUNCTION_ARN : FUNCTION_ARN,
     FUNCTION_NAME : FUNCTION_NAME,
@@ -221,5 +314,12 @@ module.exports = {
     CF_DESCRIBE_STACKS_RESPONSE : CF_DESCRIBE_STACKS_RESPONSE,
     CHECKIN_ERROR_AZCOLLECT_QUERY : CHECKIN_ERROR_AZCOLLECT_QUERY,
     CF_DESCRIBE_STACKS_FAILED_RESPONSE: CF_DESCRIBE_STACKS_FAILED_RESPONSE,
-    CLOUDWATCH_GET_METRIC_STATS_OK : CLOUDWATCH_GET_METRIC_STATS_OK
+    CLOUDWATCH_GET_METRIC_STATS_OK : CLOUDWATCH_GET_METRIC_STATS_OK,
+    
+    S3_CONFIGURATION_BUCKET: S3_CONFIGURATION_BUCKET,
+    S3_CONFIGURATION_FILE_NAME : S3_CONFIGURATION_FILE_NAME,
+    S3_CONFIGURATION_FILE_NOCHANGE : S3_CONFIGURATION_FILE_NOCHANGE,
+    S3_CONFIGURATION_FILE_CHANGE : S3_CONFIGURATION_FILE_CHANGE,
+    LAMBDA_FUNCTION_CONFIGURATION : LAMBDA_FUNCTION_CONFIGURATION,
+    LAMBDA_FUNCTION_CONFIGURATION_CHANGED : LAMBDA_FUNCTION_CONFIGURATION_CHANGED
 };
