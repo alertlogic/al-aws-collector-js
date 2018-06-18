@@ -530,7 +530,6 @@ describe('selfConfigUpdate() function', () => {
 
 describe('getConfigChanges() function', () => {
     var rewireGetConfigChanges = alAwsRewire.__get__('getConfigChanges');
-    var rewireDefaultConfigName = alAwsRewire.__get__('DEFAULT_CONFIG_NAME');
     var jsonCfg = "{\"key\":\"value\"}";
     var s3Object = {Body: new Buffer(jsonCfg)};
     
@@ -543,19 +542,6 @@ describe('getConfigChanges() function', () => {
         AWS.mock('S3', 'getObject', (params, callback) => {
             assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
             assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
-            return callback(null, s3Object);
-        });
-        
-        rewireGetConfigChanges((err, config) => {
-            assert.equal(jsonCfg, JSON.stringify(config));
-        });
-    });
-    
-    it('sunny case with default name', () => {
-        delete(process.env.aws_lambda_update_config_name);
-        AWS.mock('S3', 'getObject', (params, callback) => {
-            assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
-            assert.equal(params.Key, rewireDefaultConfigName);
             return callback(null, s3Object);
         });
         

@@ -15,7 +15,6 @@ const async = require('async');
 
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
-const DEFAULT_CONFIG_NAME = 'configs/lambda/common-collector.json';
 
 var selfUpdate = function (callback) {
     var params = {
@@ -38,28 +37,28 @@ var selfUpdate = function (callback) {
 
 var selfConfigUpdate = function (callback) {
     async.waterfall([
-        function(callback) {
+        function(asyncCallback) {
             getConfigChanges(function(err, config) {
-                callback(err, config)
+                asyncCallback(err, config)
             });
         },
-        function(newValues, callback) {
+        function(newValues, asyncCallback) {
             getCurrentConfig(function(err, currentConfig) {
-                callback(err, newValues, currentConfig)
+                asyncCallback(err, newValues, currentConfig)
             });
         },
-        function(newValues, currentConfig, callback) {
+        function(newValues, currentConfig, asyncCallback) {
             applyConfigChanges(newValues, currentConfig, function(err, newConfig) {
-                callback(err, newConfig, currentConfig)
-            })
+                asyncCallback(err, newConfig, currentConfig)
+            });
         },
-        function(newConfig, currentConfig, callback) {
+        function(newConfig, currentConfig, asyncCallback) {
             if (isConfigDifferent(newConfig, currentConfig)) {
                 var lambda = new AWS.Lambda();
                 var updateConfig = filterDisallowedConfigParams(newConfig);
-                return lambda.updateFunctionConfiguration(updateConfig, callback);
+                return lambda.updateFunctionConfiguration(updateConfig, asyncCallback);
             } else {
-                callback(null);
+                asyncCallback(null);
             }
         }
     ],
@@ -79,15 +78,10 @@ var selfConfigUpdate = function (callback) {
 
 function getConfigChanges(callback) {
     var s3 = new AWS.S3();
-    var configName;
-    
-    // Use this default config in order to update old collectors
-    configName = process.env.aws_lambda_update_config_name ? 
-        process.env.aws_lambda_update_config_name : DEFAULT_CONFIG_NAME
     
     var params = {
         Bucket: process.env.aws_lambda_s3_bucket,
-        Key: configName
+        Key: process.env.aws_lambda_update_config_name
     };
     s3.getObject(params, function(err, object) {
         if (err) {
