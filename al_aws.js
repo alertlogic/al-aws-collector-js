@@ -149,7 +149,8 @@ function filterDisallowedConfigParams(config) {
     delete(newConfig.LastModified);
     delete(newConfig.CodeSha256);
     delete(newConfig.Version);
-    delete(newConfig.VpcConfig.VpcId);
+    if (newConfig.VpcConfig)
+        delete(newConfig.VpcConfig.VpcId);
     delete(newConfig.MasterArn);
     return newConfig;
 }
