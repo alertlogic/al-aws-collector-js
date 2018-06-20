@@ -54,6 +54,27 @@ function setAlServiceStub() {
             });
 }
 
+function setAlServiceErrorStub() {
+    alserviceStub.get = sinon.stub(m_servicec.AlServiceC.prototype, 'get').callsFake(
+        function fakeFn(path, extraOptions) {
+            return new Promise(function(resolve, reject) {
+                return reject('get error');
+            });
+        });
+    alserviceStub.post = sinon.stub(m_servicec.AlServiceC.prototype, 'post').callsFake(
+            function fakeFn(path, extraOptions) {
+                return new Promise(function(resolve, reject) {
+                    return reject('post error');
+                });
+            });
+    alserviceStub.del = sinon.stub(m_servicec.AlServiceC.prototype, 'deleteRequest').callsFake(
+            function fakeFn(path) {
+                return new Promise(function(resolve, reject) {
+                    return reject('delete error');
+                });
+            });
+}
+
 function restoreAlServiceStub() {
     alserviceStub.get.restore();
     alserviceStub.post.restore();
@@ -437,4 +458,79 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
             done();
         });
     });
+});
+
+describe('al_aws_collector error tests', function(done) {
+
+    beforeEach(function(){
+        AWS.mock('KMS', 'decrypt', function (params, callback) {
+            const data = {
+                    Plaintext : 'decrypted-aims-sercret-key'
+            };
+            return callback(null, data);
+        });
+
+        responseStub = sinon.stub(m_response, 'send').callsFake(
+            function fakeFn(event, context, responseStatus, responseData, physicalResourceId) {
+                context.done();
+            });
+
+        setAlServiceErrorStub();
+        AWS.mock('CloudFormation', 'describeStacks', function(params, callback) {
+            assert.equal(params.StackName, colMock.STACK_NAME);
+            return callback(null, colMock.CF_DESCRIBE_STACKS_RESPONSE);
+        });
+        mockLambdaMetricStatistics();
+    });
+
+    afterEach(function(){
+        restoreAlServiceStub();
+        responseStub.restore();
+        AWS.restore('CloudFormation', 'describeStacks');
+        AWS.restore('CloudWatch', 'getMetricStatistics');
+    });
+
+    it('register error', function(done) {
+        var context = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            done : () => {
+                sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
+                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.FAILED, {Error: 'post error'});
+                done();
+            }
+        };
+        AlAwsCollector.load().then(function(creds) {
+            var collector = new AlAwsCollector(
+            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
+            collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+        });
+    });
+
+    it('deregister error', function(done) {
+        var context = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            done : () => {
+                sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
+                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.FAILED, {Error: 'delete error'});
+                done();
+            }
+        };
+        AlAwsCollector.load().then(function(creds) {
+            var collector = new AlAwsCollector(
+            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
+            collector.deregister(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
+        });
+    });
+
+    it('checkin error', function(done) {
+        AlAwsCollector.load().then(function(creds) {
+            var collector = new AlAwsCollector(
+                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+            collector.checkin(function(error) {
+                assert.equal(error, 'post error');
+                done();
+            });
+        });
+    });
+
 });
