@@ -15,7 +15,7 @@ const zlib = require('zlib');
 const async = require('async');
 const response = require('cfn-response');
 
-const m_alServiceC = require('al-collector-js/al_servicec');
+const m_alCollector = require('al-collector-js');
 const m_alAws = require('./al_aws');
 const m_healthChecks = require('./health_checks');
 const m_stats = require('./statistics');
@@ -95,10 +95,10 @@ class AlAwsCollector {
                 process.env.al_data_residency :
                 'default';
         this._alAzcollectEndpoint = process.env.azollect_api;
-        this._aimsc = new m_alServiceC.AimsC(process.env.al_api, aimsCreds);
-        this._endpointsc = new m_alServiceC.EndpointsC(process.env.al_api, this._aimsc);
-        this._azcollectc = new m_alServiceC.AzcollectC(process.env.azollect_api, this._aimsc, collectorType);
-        this._ingestc = new m_alServiceC.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
+        this._aimsc = new m_alCollector.AimsC(process.env.al_api, aimsCreds);
+        this._endpointsc = new m_alCollector.EndpointsC(process.env.al_api, this._aimsc);
+        this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, collectorType);
+        this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
         this._formatFun = formatFun;
         this._customHealthChecks = healthCheckFuns;
         this._customStatsFuns = statsFuns;

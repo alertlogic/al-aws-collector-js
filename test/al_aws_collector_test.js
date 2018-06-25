@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const m_response = require('cfn-response');
 
 const AlAwsCollector = require('../al_aws_collector');
-var m_servicec = require('al-collector-js/al_servicec');
+var m_alCollector = require('al-collector-js');
 const m_healthChecks = require('../health_checks');
 var AWS = require('aws-sdk-mock');
 const colMock = require('./collector_mock');
@@ -19,7 +19,7 @@ var alserviceStub = {};
 var responseStub = {};
 
 function setAlServiceStub() {
-    alserviceStub.get = sinon.stub(m_servicec.AlServiceC.prototype, 'get').callsFake(
+    alserviceStub.get = sinon.stub(m_alCollector.AlServiceC.prototype, 'get').callsFake(
         function fakeFn(path, extraOptions) {
             return new Promise(function(resolve, reject) {
                 var ret = null;
@@ -40,13 +40,13 @@ function setAlServiceStub() {
                 return resolve(ret);
             });
         });
-    alserviceStub.post = sinon.stub(m_servicec.AlServiceC.prototype, 'post').callsFake(
+    alserviceStub.post = sinon.stub(m_alCollector.AlServiceC.prototype, 'post').callsFake(
             function fakeFn(path, extraOptions) {
                 return new Promise(function(resolve, reject) {
                     return resolve();
                 });
             });
-    alserviceStub.del = sinon.stub(m_servicec.AlServiceC.prototype, 'deleteRequest').callsFake(
+    alserviceStub.del = sinon.stub(m_alCollector.AlServiceC.prototype, 'deleteRequest').callsFake(
             function fakeFn(path) {
                 return new Promise(function(resolve, reject) {
                     return resolve();
@@ -55,19 +55,19 @@ function setAlServiceStub() {
 }
 
 function setAlServiceErrorStub() {
-    alserviceStub.get = sinon.stub(m_servicec.AlServiceC.prototype, 'get').callsFake(
+    alserviceStub.get = sinon.stub(m_alCollector.AlServiceC.prototype, 'get').callsFake(
         function fakeFn(path, extraOptions) {
             return new Promise(function(resolve, reject) {
                 return reject('get error');
             });
         });
-    alserviceStub.post = sinon.stub(m_servicec.AlServiceC.prototype, 'post').callsFake(
+    alserviceStub.post = sinon.stub(m_alCollector.AlServiceC.prototype, 'post').callsFake(
             function fakeFn(path, extraOptions) {
                 return new Promise(function(resolve, reject) {
                     return reject('post error');
                 });
             });
-    alserviceStub.del = sinon.stub(m_servicec.AlServiceC.prototype, 'deleteRequest').callsFake(
+    alserviceStub.del = sinon.stub(m_alCollector.AlServiceC.prototype, 'deleteRequest').callsFake(
             function fakeFn(path) {
                 return new Promise(function(resolve, reject) {
                     return reject('delete error');
@@ -305,14 +305,14 @@ describe('al_aws_collector tests', function(done) {
         var ingestCSecmsgsStub;
         var ingestCVpcFlowStub;
         before(function() {
-            ingestCSecmsgsStub = sinon.stub(m_servicec.IngestC.prototype, 'sendSecmsgs').callsFake(
+            ingestCSecmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendSecmsgs').callsFake(
                 function fakeFn(data, callback) {
                     return new Promise (function(resolve, reject) {
                         resolve(null);
                     });
                 });
 
-            ingestCVpcFlowStub = sinon.stub(m_servicec.IngestC.prototype, 'sendVpcFlow').callsFake(
+            ingestCVpcFlowStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendVpcFlow').callsFake(
                 function fakeFn(data, callback) {
                     return new Promise (function(resolve, reject) {
                         resolve(null);
