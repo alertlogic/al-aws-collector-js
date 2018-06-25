@@ -14,6 +14,7 @@ const moment = require('moment');
 const zlib = require('zlib');
 const async = require('async');
 const response = require('cfn-response');
+const deepEqual = require('deep-equal');
 
 const m_alCollector = require('al-collector-js');
 const m_alAws = require('./al_aws');
@@ -246,9 +247,115 @@ class AlAwsCollector {
         ],
         callback);
     }
+    
+    update(callback) {
+        let collector = this;
+
+        async.waterfall([
+            collector.selfUpdate,
+            function(asyncCallback) {
+                // Run config update only if the config file is known
+                if (process.env.aws_lambda_update_config_name) {
+                    collector.selfConfigUpdate(asyncCallback);
+                } else {
+                    asyncCallback(null)
+                }
+            }
+        ], callback);
+    }
 
     selfUpdate(callback) {
         m_alAws.selfUpdate(callback);
+    }
+    
+    selfConfigUpdate(callback) {
+        let collector = this;
+        
+        async.waterfall([
+            function(asyncCallback) {
+                m_alAws.getS3ConfigChanges(function(err, config) {
+                    asyncCallback(err, config);
+                });
+            },
+            function(newValues, asyncCallback) {
+                m_alAws.getLambdaConfig(function(err, currentConfig) {
+                    asyncCallback(err, newValues, currentConfig);
+                });
+            },
+            function(newValues, currentConfig, asyncCallback) {
+                collector._applyConfigChanges(newValues, currentConfig, function(err, newConfig) {
+                    asyncCallback(err, newConfig, currentConfig);
+                });
+            },
+            function(newConfig, currentConfig, asyncCallback) {
+                if (collector._isConfigDifferent(newConfig, currentConfig)) {
+                    let updateConfig = collector._filterDisallowedConfigParams(newConfig);
+                    m_alAws.updateLambdaConfig(updateConfig, asyncCallback);
+                } else {
+                    asyncCallback(null);
+                }
+            }
+        ],
+        function(err, config) {
+            if (err) {
+                console.info('Lambda self-update config error: ', err);
+            } else {
+                if (config !== undefined) {
+                    console.info('Lambda self-update config successful. Config: ', config);
+                } else {
+                    console.info('Lambda self-update config nothing to update');
+                }
+            }
+            callback(err, config);
+        });
+    }
+
+    _applyConfigChanges(newValues, config, callback) {
+        var jsonConfig = JSON.stringify(config);
+        var newConfig = JSON.parse(jsonConfig); 
+        
+        try {
+            Object.keys(newValues).forEach(
+                function(item) {
+                    let path = newValues[item]['path'];
+                    let value = newValues[item]['value'];
+                    this._changeObject(newConfig, path, value);
+                }, this); //lexical scoping
+            return callback(null, newConfig);
+        }
+        catch(ex) {
+            return callback('Unable to apply new config values');
+        }
+    }
+
+    _changeObject(obj, path, value) {
+        if (typeof path == 'string') {
+            return this._changeObject(obj, path.split('.'), value);
+        }
+        else if (path.length == 1) {
+            return obj[path[0]] = value;
+        } else {
+            return this._changeObject(obj[path[0]], path.slice(1), value);
+        }
+    }
+
+    _isConfigDifferent(config1, config2) {
+        return !deepEqual(config1, config2);
+    }
+
+    _filterDisallowedConfigParams(config) {
+        var newConfig = JSON.parse(JSON.stringify(config));
+        // These are not either allowed to update or we don't have enough permission.
+        delete(newConfig.FunctionArn);
+        delete(newConfig.Role);
+        delete(newConfig.CodeSize);
+        delete(newConfig.LastModified);
+        delete(newConfig.CodeSha256);
+        delete(newConfig.Version);
+        if (newConfig.VpcConfig)
+            delete(newConfig.VpcConfig.VpcId);
+        delete(newConfig.MasterArn);
+        return newConfig;
     }
 }
 

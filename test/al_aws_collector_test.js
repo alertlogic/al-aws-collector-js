@@ -2,6 +2,7 @@ const assert = require('assert');
 const rewire = require('rewire');
 const sinon = require('sinon');
 const m_response = require('cfn-response');
+const deepEqual = require('deep-equal');
 
 const AlAwsCollector = require('../al_aws_collector');
 var m_alCollector = require('al-collector-js');
@@ -9,7 +10,6 @@ const m_healthChecks = require('../health_checks');
 var AWS = require('aws-sdk-mock');
 const colMock = require('./collector_mock');
 const zlib = require('zlib');
-
 
 const context = {
     invokedFunctionArn : colMock.FUNCTION_ARN
@@ -90,7 +90,26 @@ function mockLambdaUpdateFunctionCode() {
     });
 }
 
-function mockLambdaUpdateConfiguration() {
+function mockS3GetObject(returnObject) {
+    AWS.mock('S3', 'getObject', function (params, callback) {
+        let buf = Buffer(JSON.stringify(returnObject));
+        return callback(null, {Body: buf});
+    });
+}
+
+function mockLambdaGetFunctionConfiguration(returnObject) {
+    AWS.mock('Lambda', 'getFunctionConfiguration', function (params, callback) {
+        return callback(null, returnObject);
+    });
+}
+
+function mockLambdaUpdateFunctionConfiguration(returnObject) {
+    AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
+        return callback(null, returnObject);
+    });
+}
+
+function mockLambdaEndpointsUpdateConfiguration() {
     AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
         assert.equal(params.FunctionName, colMock.FUNCTION_NAME);
         assert.deepEqual(params.Environment, {
@@ -243,6 +262,7 @@ describe('al_aws_collector tests', function(done) {
 
         after(function() {
             AWS.restore('CloudFormation', 'describeStacks');
+            AWS.restore('Lambda', 'updateFunctionConfiguration');
         });
 
         it('checkin error with healthCheck', function(done) {
@@ -290,7 +310,7 @@ describe('al_aws_collector tests', function(done) {
     });
 
     it('updateEndpoints success', function(done) {
-        mockLambdaUpdateConfiguration();
+        mockLambdaEndpointsUpdateConfiguration();
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
@@ -385,6 +405,250 @@ describe('al_aws_collector tests', function(done) {
                     done();
                 });
             });
+        });
+    });
+    
+    describe('isConfigDifferent() method', () => {
+        var collector;
+        var context = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
+        };
+        
+        beforeEach(() => {
+            collector = new AlAwsCollector(context, 'cwe', 
+                AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
+        });
+        
+        it('same', () => {
+            assert.equal(
+                false, 
+                collector._isConfigDifferent(
+                    colMock.LAMBDA_FUNCTION_CONFIGURATION, 
+                    colMock.LAMBDA_FUNCTION_CONFIGURATION
+                )
+            );
+        });
+        
+        it('different', () => {
+            assert.equal(
+                true, 
+                collector._isConfigDifferent(
+                    colMock.LAMBDA_FUNCTION_CONFIGURATION, 
+                    colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED
+                )
+            );
+        });
+    });
+    
+    describe('changeObject() function', () => {
+        var collector;
+        var objectRef;
+        var object;
+        var context = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
+        };
+
+        beforeEach(() => {
+            collector = new AlAwsCollector(context, 'cwe', 
+                AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
+                
+            object = {
+                keyA: { keyAA: 'valueAA' },
+                keyB: 'valueB'
+            };
+            objectRef = JSON.parse(JSON.stringify(object));
+        });
+
+        it('sunny single key', () => {
+            collector._changeObject(object, 'keyB', 'newValueB');
+            objectRef.keyB = 'newValueB';
+            assert(deepEqual(objectRef, object));
+        });
+
+        it('sunny nested keys', () => {
+            collector._changeObject(object, 'keyA.keyAA', 'newValueAA');
+            objectRef.keyA.keyAA = 'newValueAA';
+            assert(deepEqual(objectRef, object));
+        });
+
+        it('sunny add a new key', () => {
+            collector._changeObject(object, 'keyC', 'newValueC');
+            objectRef.keyC = 'newValueC';
+            assert(deepEqual(objectRef, object));
+        });
+
+        it('sunny add a new nested key', () => {
+            collector._changeObject(object, 'keyA.keyAB', 'newValueAB');
+            objectRef.keyA.keyAB = 'newValueAB';
+            assert(deepEqual(objectRef, object));
+        });
+
+        it('error in nested key', () => {
+            assert.throws(() => {
+                collector._changeObject(object, 'NON_EXISTING_KEY.keyX', 'value');
+            });
+        });
+    });
+    
+    describe('applyConfigChanges() function', () => {
+        var object;
+        var newValues;
+        var collector;
+        var context = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
+        };
+
+        beforeEach(() => {
+            collector = new AlAwsCollector(context, 'cwe', 
+                AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
+            object = JSON.parse(JSON.stringify(colMock.LAMBDA_FUNCTION_CONFIGURATION));
+            newValues = colMock.S3_CONFIGURATION_FILE_CHANGE;
+        });
+
+        it('apply new changes', () => {
+            collector._applyConfigChanges(newValues, object, (err, config) => {
+                assert.equal(err, undefined);
+                assert(deepEqual(config, colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED));
+            });
+        });
+
+        it('apply same values (no changes)', () => {
+            newValues = {
+                Runtime: {
+                    path: "Runtime",
+                    value: "nodejs6.10"
+                },
+                Timeout: {
+                    path: "Timeout",
+                    value: 3
+                },
+                ChangeVariableAlApi: {
+                    path: "Environment.Variables.al_api",
+                    value: process.env.al_api
+                }
+            };
+            collector._applyConfigChanges(newValues, object, (err, config) => {
+                assert.equal(err, undefined);
+                assert(deepEqual(config, colMock.LAMBDA_FUNCTION_CONFIGURATION));
+            });
+        });
+    });
+    
+    describe('selfConfigUpdate() function', () => {
+        var collector;
+        var context = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
+        };
+        
+        beforeEach(() => {
+            collector = new AlAwsCollector(context, 'cwe', 
+                AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
+        });
+        
+        afterEach(() => {
+            AWS.restore('S3', 'getObject');
+            AWS.restore('Lambda', 'getFunctionConfiguration');
+            AWS.restore('Lambda', 'updateFunctionConfiguration');
+        });
+        
+        it('sunny config update', () => {
+            var updateConfig = collector._filterDisallowedConfigParams(colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED);
+    
+            mockS3GetObject(colMock.S3_CONFIGURATION_FILE_CHANGE);
+            mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
+    
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {                
+                assert(deepEqual(updateConfig, params));
+                callback(null, colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED);
+            });
+    
+            collector.selfConfigUpdate((err, config) => {
+                assert.equal(null, err);
+                assert(deepEqual(colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED, config));
+            });            
+        });
+    
+        it('no config updates', () => {        
+            mockS3GetObject(colMock.S3_CONFIGURATION_FILE_NOCHANGE);
+            mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
+        
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+                throw("should not be called");
+            });
+        
+            collector.selfConfigUpdate((err, config) => {
+                assert.equal(null, err);
+                assert.equal(config, undefined);
+            });
+        });
+        
+        it('non-existing config attribute', () => {
+            var fileChange = {
+                "Name" : {
+                    path: "a.b.c.d",
+                    value: "my value"
+                }
+            };
+            mockS3GetObject(fileChange);
+            mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
+        
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+                throw("should not be called");
+            });
+        
+            collector.selfConfigUpdate((err, config) => {
+                assert.equal('Unable to apply new config values', err);
+                assert.equal(config, undefined);
+            });
+        });
+    });
+    
+    describe('update() method', () => {
+        var collector;
+        var fakeSelfUpdate;
+        var fakeSelfConfigUpdate;
+        var context = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
+        };
+        
+        beforeEach(() => {
+            collector = new AlAwsCollector(context, 'cwe', 
+                AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
+            fakeSelfUpdate = sinon.stub(AlAwsCollector.prototype, 'selfUpdate').callsFake(
+                (callback) => { callback(); });
+            fakeSelfConfigUpdate = sinon.stub(AlAwsCollector.prototype, 'selfConfigUpdate').callsFake(
+                    (callback) => { callback(); });
+        });
+        
+        afterEach(() => {
+            fakeSelfUpdate.restore();
+            fakeSelfConfigUpdate.restore();
+            process.env.aws_lambda_update_config_name = colMock.S3_CONFIGURATION_FILE_NAME;
+        });
+        
+        it('code and config update', () => {
+            collector.update((err) => {
+                assert.equal(err, undefined);
+            });
+            
+            sinon.assert.calledOnce(fakeSelfUpdate);
+            sinon.assert.calledOnce(fakeSelfConfigUpdate);
+        });
+        
+        it('code update only', () => {
+            delete(process.env.aws_lambda_update_config_name);
+            
+            collector.update((err) => {
+                assert.equal(err, undefined);
+            });
+            
+            sinon.assert.calledOnce(fakeSelfUpdate);
+            sinon.assert.notCalled(fakeSelfConfigUpdate);
         });
     });
 });

@@ -11,6 +11,7 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment');
+const async = require('async');
 
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
@@ -33,6 +34,40 @@ var selfUpdate = function (callback) {
     });
 };
 
+var getS3ConfigChanges = function(callback) {
+    var s3 = new AWS.S3();
+
+    var params = {
+        Bucket: process.env.aws_lambda_s3_bucket,
+        Key: process.env.aws_lambda_update_config_name
+    };
+    s3.getObject(params, function(err, object) {
+        if (err) {
+            return callback(err);
+        } else {
+            try  {
+                let config = JSON.parse(object.Body.toString());
+                return callback(null, config);
+            } catch(ex) {
+                return callback('Unable to parse config cahnges.')
+            }
+        }
+    });
+};
+
+var getLambdaConfig = function(callback) {
+    var lambda = new AWS.Lambda();
+    var params = {
+        FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
+    };
+
+    lambda.getFunctionConfiguration(params, callback);
+};
+
+var updateLambdaConfig = function(config, callback) {
+    var lambda = new AWS.Lambda();
+    lambda.updateFunctionConfiguration(config, callback);
+};
 
 //DEPRECATED FUNCTION
 //please use statistics_templates.js instead
@@ -126,13 +161,16 @@ var setEnv = function(vars, callback) {
 
 module.exports = {
     selfUpdate : selfUpdate,
+    getS3ConfigChanges : getS3ConfigChanges,
+    updateLambdaConfig : updateLambdaConfig,
+    getLambdaConfig : getLambdaConfig,
     arnToName : arnToName,
     arnToAccId : arnToAccId,
     setEnv : setEnv,
-
+    
     //DEPRECATED FUNCTIONS
     //please use statistics_templates.js instead
     getMetricStatistics : getMetricStatistics,
     getLambdaMetrics : getLambdaMetrics,
-    getKinesisMetrics : getKinesisMetrics
+    getKinesisMetrics : getKinesisMetrics,
 };
