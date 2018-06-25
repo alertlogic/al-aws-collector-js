@@ -15,7 +15,7 @@ const zlib = require('zlib');
 const async = require('async');
 const response = require('cfn-response');
 
-const m_alServiceC = require('al-collector-js/al_servicec');
+const m_alServiceC = require('al-collector-js');
 const m_alAws = require('./al_aws');
 const m_healthChecks = require('./health_checks');
 const m_stats = require('./statistics');

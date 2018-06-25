@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const m_response = require('cfn-response');
 
 const AlAwsCollector = require('../al_aws_collector');
-var m_servicec = require('al-collector-js/al_servicec');
+var m_servicec = require('al-collector-js');
 const m_healthChecks = require('../health_checks');
 var AWS = require('aws-sdk-mock');
 const colMock = require('./collector_mock');
