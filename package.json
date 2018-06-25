@@ -24,7 +24,8 @@
     "al-collector-js": "git://github.com/alertlogic/al-collector-js#master",
     "cfn-response": "*",
     "async": "*",
-    "moment": "^2.19.2"
+    "moment": "^2.19.2",
+    "deep-equal": "*"
   },
   "author": "Alert Logic Inc."
 }

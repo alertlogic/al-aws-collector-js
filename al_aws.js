@@ -34,51 +34,9 @@ var selfUpdate = function (callback) {
     });
 };
 
-
-var selfConfigUpdate = function (callback) {
-    async.waterfall([
-        function(asyncCallback) {
-            getConfigChanges(function(err, config) {
-                asyncCallback(err, config)
-            });
-        },
-        function(newValues, asyncCallback) {
-            getCurrentConfig(function(err, currentConfig) {
-                asyncCallback(err, newValues, currentConfig)
-            });
-        },
-        function(newValues, currentConfig, asyncCallback) {
-            applyConfigChanges(newValues, currentConfig, function(err, newConfig) {
-                asyncCallback(err, newConfig, currentConfig)
-            });
-        },
-        function(newConfig, currentConfig, asyncCallback) {
-            if (isConfigDifferent(newConfig, currentConfig)) {
-                var lambda = new AWS.Lambda();
-                var updateConfig = filterDisallowedConfigParams(newConfig);
-                return lambda.updateFunctionConfiguration(updateConfig, asyncCallback);
-            } else {
-                asyncCallback(null);
-            }
-        }
-    ],
-    function(err, config) {
-        if (err) {
-            console.info('Lambda self-update config error: ', err);
-        } else {
-            if (config !== undefined) {
-                console.info('Lambda self-update config successful. Config: ', config);
-            } else {
-                console.info('Lambda self-update config nothing to update');
-            }
-        }
-        callback(err, config);
-    });
-};
-
-function getConfigChanges(callback) {
+var getS3ConfigChanges = function(callback) {
     var s3 = new AWS.S3();
-    
+
     var params = {
         Bucket: process.env.aws_lambda_s3_bucket,
         Key: process.env.aws_lambda_update_config_name
@@ -95,66 +53,21 @@ function getConfigChanges(callback) {
             }
         }
     });
-}
+};
 
-function getCurrentConfig(callback) {
+var getLambdaConfig = function(callback) {
     var lambda = new AWS.Lambda();
     var params = {
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
     };
-    
+
     lambda.getFunctionConfiguration(params, callback);
-}
+};
 
-function applyConfigChanges(newValues, config, callback) {
-    var jsonConfig = JSON.stringify(config);
-    var newConfig = JSON.parse(jsonConfig);
-
-    try {
-        Object.keys(newValues).forEach(
-            function(item) {
-                let path = newValues[item]['path'];
-                let value = newValues[item]['value'];
-                changeObject(newConfig, path, value);
-            }
-        );
-        return callback(null, newConfig);
-    }
-    catch(ex) {
-        return callback('Unable to apply new config values')
-    }
-}
-
-function changeObject(obj, path, value) {
-    if (typeof path == 'string') {
-        return changeObject(obj, path.split('.'), value);
-    }
-    else if (path.length == 1) {
-        return obj[path[0]] = value;
-    } else {
-        return changeObject(obj[path[0]], path.slice(1), value);
-    }
-}
-
-function isConfigDifferent(config1, config2) {
-    return JSON.stringify(config1) != JSON.stringify(config2);
-}
-
-function filterDisallowedConfigParams(config) {
-    var newConfig = JSON.parse(JSON.stringify(config));
-    // These are not either allowed to update or we don't have enough permission.
-    delete(newConfig.FunctionArn);
-    delete(newConfig.Role);
-    delete(newConfig.CodeSize);
-    delete(newConfig.LastModified);
-    delete(newConfig.CodeSha256);
-    delete(newConfig.Version);
-    if (newConfig.VpcConfig)
-        delete(newConfig.VpcConfig.VpcId);
-    delete(newConfig.MasterArn);
-    return newConfig;
-}
-
+var updateLambdaConfig = function(config, callback) {
+    var lambda = new AWS.Lambda();
+    lambda.updateFunctionConfiguration(config, callback);
+};
 
 //DEPRECATED FUNCTION
 //please use statistics_templates.js instead
@@ -248,7 +161,9 @@ var setEnv = function(vars, callback) {
 
 module.exports = {
     selfUpdate : selfUpdate,
-    selfConfigUpdate : selfConfigUpdate,
+    getS3ConfigChanges : getS3ConfigChanges,
+    updateLambdaConfig : updateLambdaConfig,
+    getLambdaConfig : getLambdaConfig,
     arnToName : arnToName,
     arnToAccId : arnToAccId,
     setEnv : setEnv,
