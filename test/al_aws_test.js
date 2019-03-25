@@ -1,6 +1,5 @@
 const assert = require('assert');
 const rewire = require('rewire');
-const sinon = require('sinon');
 const m_alAws = require('../al_aws');
 const colMock = require('./collector_mock');
 var AWS = require('aws-sdk-mock');
@@ -8,7 +7,7 @@ var AWS = require('aws-sdk-mock');
 const alAwsRewire = rewire('../al_aws');
 
 describe('al_aws Tests', function() {
-    describe('arnToName() tests', function(done) {
+    describe('arnToName() tests', function() {
         it('Valid input', function(done) {
             assert.equal(m_alAws.arnToName('arn:aws:iam::123456789101:role/testRole'), 'testRole');
             assert.equal(m_alAws.arnToName('arn:aws:kinesis:us-east-1:123456789101:stream/test-KinesisStream'), 'test-KinesisStream');
@@ -25,7 +24,7 @@ describe('al_aws Tests', function() {
         });
     });
     
-    describe('arnToAccId() tests', function(done) {
+    describe('arnToAccId() tests', function() {
         it('Valid input', function(done) {
             assert.equal(m_alAws.arnToAccId('arn:aws:iam::123456789101:role/testRole'), '123456789101');
             assert.equal(m_alAws.arnToAccId('arn:aws:kinesis:us-east-1:123456789101:stream/test-KinesisStream'), '123456789101');
