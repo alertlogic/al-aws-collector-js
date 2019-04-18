@@ -103,12 +103,6 @@ function mockLambdaGetFunctionConfiguration(returnObject) {
     });
 }
 
-function mockLambdaUpdateFunctionConfiguration(returnObject) {
-    AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
-        return callback(null, returnObject);
-    });
-}
-
 function mockLambdaEndpointsUpdateConfiguration() {
     AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
         assert.equal(params.FunctionName, colMock.FUNCTION_NAME);
@@ -134,7 +128,7 @@ var formatFun = function (event, context, callback) {
     return callback(null, event);
 };
 
-describe('al_aws_collector tests', function(done) {
+describe('al_aws_collector tests', function() {
 
     beforeEach(function(){
         AWS.mock('KMS', 'decrypt', function (params, callback) {
@@ -145,8 +139,8 @@ describe('al_aws_collector tests', function(done) {
         });
 
         responseStub = sinon.stub(m_response, 'send').callsFake(
-            function fakeFn(event, context, responseStatus, responseData, physicalResourceId) {
-                context.succeed();
+            function fakeFn(event, mockContext, responseStatus, responseData, physicalResourceId) {
+                mockContext.succeed();
             });
 
         setAlServiceStub();
@@ -158,7 +152,7 @@ describe('al_aws_collector tests', function(done) {
     });
 
     it('register success', function(done) {
-        var context = {
+        var mockContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             succeed : () => {
                 sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
@@ -167,14 +161,14 @@ describe('al_aws_collector tests', function(done) {
         };
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
-            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
+            mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
             collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
         });
     });
 
-    describe('checkin success', function(done) {
+    describe('checkin success', function() {
 
-        var context = {
+        var mockContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
@@ -195,7 +189,7 @@ describe('al_aws_collector tests', function(done) {
         it('checkin success', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
-                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
                 collector.checkin(function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
@@ -210,7 +204,7 @@ describe('al_aws_collector tests', function(done) {
                     return callback(null);
                 });
                 var collector = new AlAwsCollector(
-                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0',
+                    mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0',
                     creds, undefined, [spyHealthCheck], []
                 );
                 collector.checkin(function(error) {
@@ -228,7 +222,7 @@ describe('al_aws_collector tests', function(done) {
                     return callback(m_healthChecks.errorMsg('MYCODE', 'error message'));
                 });
                 var collector = new AlAwsCollector(
-                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0',
+                    mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0',
                     creds, undefined, [spyHealthCheck], []
                 );
                 collector.checkin(function(error) {
@@ -245,9 +239,9 @@ describe('al_aws_collector tests', function(done) {
         });
     });
 
-    describe('checkin error', function(done) {
+    describe('checkin error', function() {
 
-        var context = {
+        var checkinContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
@@ -268,7 +262,7 @@ describe('al_aws_collector tests', function(done) {
         it('checkin error with healthCheck', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
-                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                checkinContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
                 collector.checkin(function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledWith(
@@ -283,7 +277,7 @@ describe('al_aws_collector tests', function(done) {
     });
 
     it('deregister success', function(done) {
-        var context = {
+        var deregisterContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             succeed : () => {
                 sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
@@ -292,7 +286,7 @@ describe('al_aws_collector tests', function(done) {
         };
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
-            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
+            deregisterContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
             collector.deregister(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
         });
     });
@@ -321,7 +315,7 @@ describe('al_aws_collector tests', function(done) {
         });
     });
     
-    describe('mocking ingestC', function(done) {
+    describe('mocking ingestC', function() {
         var ingestCSecmsgsStub;
         var ingestCVpcFlowStub;
         before(function() {
@@ -380,7 +374,7 @@ describe('al_aws_collector tests', function(done) {
         });
     });
     
-    describe('mocking send', function(done) {
+    describe('mocking send', function() {
         var sendStub;
         before(function() {
             sendStub = sinon.stub(AlAwsCollector.prototype, 'send').callsFake(
@@ -410,13 +404,13 @@ describe('al_aws_collector tests', function(done) {
     
     describe('isConfigDifferent() method', () => {
         var collector;
-        var context = {
+        var isConfigDifferentContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
         
         beforeEach(() => {
-            collector = new AlAwsCollector(context, 'cwe', 
+            collector = new AlAwsCollector(isConfigDifferentContext, 'cwe', 
                 AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
         });
         
@@ -445,13 +439,13 @@ describe('al_aws_collector tests', function(done) {
         var collector;
         var objectRef;
         var object;
-        var context = {
+        var changeObjectContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
 
         beforeEach(() => {
-            collector = new AlAwsCollector(context, 'cwe', 
+            collector = new AlAwsCollector(changeObjectContext, 'cwe', 
                 AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
                 
             object = {
@@ -496,13 +490,13 @@ describe('al_aws_collector tests', function(done) {
         var object;
         var newValues;
         var collector;
-        var context = {
+        var applyConfigChangesContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
 
         beforeEach(() => {
-            collector = new AlAwsCollector(context, 'cwe', 
+            collector = new AlAwsCollector(applyConfigChangesContext, 'cwe', 
                 AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
             object = JSON.parse(JSON.stringify(colMock.LAMBDA_FUNCTION_CONFIGURATION));
             newValues = colMock.S3_CONFIGURATION_FILE_CHANGE;
@@ -539,13 +533,13 @@ describe('al_aws_collector tests', function(done) {
     
     describe('selfConfigUpdate() function', () => {
         var collector;
-        var context = {
+        var selfConfigUpdateContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
         
         beforeEach(() => {
-            collector = new AlAwsCollector(context, 'cwe', 
+            collector = new AlAwsCollector(selfConfigUpdateContext, 'cwe', 
                 AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
         });
         
@@ -611,13 +605,13 @@ describe('al_aws_collector tests', function(done) {
         var collector;
         var fakeSelfUpdate;
         var fakeSelfConfigUpdate;
-        var context = {
+        var updateContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
         
         beforeEach(() => {
-            collector = new AlAwsCollector(context, 'cwe', 
+            collector = new AlAwsCollector(updateContext, 'cwe', 
                 AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
             fakeSelfUpdate = sinon.stub(AlAwsCollector.prototype, 'selfUpdate').callsFake(
                 (callback) => { callback(); });
@@ -656,7 +650,7 @@ describe('al_aws_collector tests', function(done) {
 
 describe('al_aws_collector tests for setDecryptedCredentials()', function() {
     var rewireGetDecryptedCredentials;
-    var stub;
+    var collectRewire;
 
     const ACCESS_KEY_ID = 'access_key_id';
     const ENCRYPTED_SECRET_KEY = 'encrypted_secret_key';
@@ -724,7 +718,7 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
     });
 });
 
-describe('al_aws_collector error tests', function(done) {
+describe('al_aws_collector error tests', function() {
 
     beforeEach(function(){
         AWS.mock('KMS', 'decrypt', function (params, callback) {
@@ -735,8 +729,8 @@ describe('al_aws_collector error tests', function(done) {
         });
 
         responseStub = sinon.stub(m_response, 'send').callsFake(
-            function fakeFn(event, context, responseStatus, responseData, physicalResourceId) {
-                context.done();
+            function fakeFn(event, fakeContext, responseStatus, responseData, physicalResourceId) {
+                fakeContext.done();
             });
 
         setAlServiceErrorStub();
@@ -755,7 +749,7 @@ describe('al_aws_collector error tests', function(done) {
     });
 
     it('register error', function(done) {
-        var context = {
+        var registerContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             done : () => {
                 sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
@@ -765,13 +759,13 @@ describe('al_aws_collector error tests', function(done) {
         };
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
-            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
+            registerContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
             collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
         });
     });
 
     it('deregister error', function(done) {
-        var context = {
+        var deregisterContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             done : () => {
                 sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
@@ -781,7 +775,7 @@ describe('al_aws_collector error tests', function(done) {
         };
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
-            context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
+            deregisterContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
             collector.deregister(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
         });
     });

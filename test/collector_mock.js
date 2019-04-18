@@ -92,13 +92,13 @@ const CHECKIN_URL = '/aws/cwe/checkin/123456789012/us-east-1/' + encodeURICompon
 //         }
 //     ]
 // };
-const CHECKIN_TEST_EVENT = {
-    'RequestType': 'ScheduledEvent',
-    'Type': 'Checkin',
-    'AwsAccountId': '353333894008',
-    'StackName' : STACK_NAME,
-    'Region' : 'us-east-1'
-};
+// const CHECKIN_TEST_EVENT = {
+//     'RequestType': 'ScheduledEvent',
+//     'Type': 'Checkin',
+//     'AwsAccountId': '353333894008',
+//     'StackName' : STACK_NAME,
+//     'Region' : 'us-east-1'
+// };
 
 
 const CHECKIN_AZCOLLECT_QUERY = {
