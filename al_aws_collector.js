@@ -208,6 +208,7 @@ class AlAwsCollector {
         if(!data){
             console.warn('data appears to be empty, skipping send to ingest');
             callback(null);
+            return;
         }
 
         zlib.deflate(data, function(compressionErr, compressed) {
