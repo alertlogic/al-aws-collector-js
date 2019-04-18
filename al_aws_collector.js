@@ -203,7 +203,13 @@ class AlAwsCollector {
     send(data, callback){
         var collector = this;
         var ingestType = collector._ingestType;
-        
+
+        // if the data is falsey, just return the callback
+        if(!data){
+            console.warn('data appears to be empty, skipping send to ingest');
+            callback(null);
+        }
+
         zlib.deflate(data, function(compressionErr, compressed) {
             if (compressionErr) {
                 return callback(compressionErr);
