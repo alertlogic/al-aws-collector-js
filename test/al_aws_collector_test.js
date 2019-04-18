@@ -324,7 +324,7 @@ describe('al_aws_collector tests', function(done) {
     describe('mocking ingestC', function(done) {
         var ingestCSecmsgsStub;
         var ingestCVpcFlowStub;
-        before(function() {
+        beforeEach(function() {
             ingestCSecmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendSecmsgs').callsFake(
                 function fakeFn(data, callback) {
                     return new Promise (function(resolve, reject) {
@@ -340,9 +340,22 @@ describe('al_aws_collector tests', function(done) {
                 });
         });
         
-        after(function() {
+        afterEach(function() {
             ingestCSecmsgsStub.restore();
             ingestCVpcFlowStub.restore();
+        });
+
+        it('dont send if data is falsey', function(done) {
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
+                var data = '';
+                collector.send(data, function(error) {
+                    assert.ifError(error);
+                    sinon.assert.notCalled(ingestCSecmsgsStub);
+                    done();
+                });
+            });
         });
         
         it('send secmsgs success', function(done) {
