@@ -5,7 +5,7 @@ const m_response = require('cfn-response');
 const deepEqual = require('deep-equal');
 
 const AlAwsCollector = require('../al_aws_collector');
-var m_alCollector = require('al-collector-js');
+var m_alCollector = require('@alertlogic/al-collector-js');
 const m_healthChecks = require('../health_checks');
 var AWS = require('aws-sdk-mock');
 const colMock = require('./collector_mock');

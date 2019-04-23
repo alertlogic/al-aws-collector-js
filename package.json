@@ -1,18 +1,29 @@
 {
-  "name": "al-aws-collector-js",
-  "version": "1.0.0",
+  "name": "@alertlogic/al-aws-collector-js",
+  "version": "1.1.0",
+  "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
-  "repository": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alertlogic/al-aws-collector-js#master"
+  },
   "private": true,
   "scripts": {
     "lint": "jshint --exclude \"./node_modules/*\" **/*.js",
     "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura mocha --colors --reporter mocha-jenkins-reporter"
   },
+  "main": "index.js",
+  "maintainers": [
+    {
+      "name": "Alert Logic NPM Team",
+      "email": "npm@alertlogic.com"
+    }
+  ],
   "devDependencies": {
-    "aws-sdk": "*",
-    "aws-sdk-mock": "*",
-    "dotenv": "*",
-    "clone": "*",
+    "aws-sdk": "^2.441.0",
+    "aws-sdk-mock": "^4.4.0",
+    "dotenv": "^7.0.0",
+    "clone": "^2.1.2",
     "jshint": "^2.9.5",
     "mocha": "^3.5.3",
     "mocha-jenkins-reporter": "^0.3.10",
@@ -21,11 +32,11 @@
     "sinon": "^3.3.0"
   },
   "dependencies": {
-    "al-collector-js": "git://github.com/alertlogic/al-collector-js#master",
-    "cfn-response": "*",
-    "async": "*",
+    "@alertlogic/al-collector-js": "^1.1.2",
+    "cfn-response": "^1.0.1",
+    "async": "^2.6.1",
     "moment": "^2.19.2",
-    "deep-equal": "*"
+    "deep-equal": "^1.0.1"
   },
   "author": "Alert Logic Inc."
 }
