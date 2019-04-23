@@ -199,18 +199,12 @@ class AlAwsCollector {
                 return response.send(event, context, response.FAILED, {Error: exception});
             });
     }
-    
+
     send(data, callback){
         var collector = this;
         var ingestType = collector._ingestType;
 
-        // if the data is falsey, and empty array or an empty object, just return the callback.
-        const stringifiedData = JSON.stringify(data);
-        if(
-            !data ||
-            stringifiedData === '{}' ||
-            stringifiedData === '[]'
-        ){
+        if(!data){
             return callback(null);
         }
 
