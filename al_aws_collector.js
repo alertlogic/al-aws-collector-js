@@ -199,11 +199,15 @@ class AlAwsCollector {
                 return response.send(event, context, response.FAILED, {Error: exception});
             });
     }
-    
+
     send(data, callback){
         var collector = this;
         var ingestType = collector._ingestType;
-        
+
+        if(!data){
+            return callback(null);
+        }
+
         zlib.deflate(data, function(compressionErr, compressed) {
             if (compressionErr) {
                 return callback(compressionErr);
