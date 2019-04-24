@@ -5,9 +5,9 @@
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alertlogic/al-aws-collector-js#master"
+    "url": "https://github.com/alertlogic/al-aws-collector-js#npm"
   },
-  "private": true,
+  "private": false,
   "scripts": {
     "lint": "jshint --exclude \"./node_modules/*\" **/*.js",
     "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura mocha --colors --reporter mocha-jenkins-reporter"
