@@ -16,7 +16,7 @@ const async = require('async');
 const response = require('cfn-response');
 const deepEqual = require('deep-equal');
 
-const m_alCollector = require('al-collector-js');
+const m_alCollector = require('@alertlogic/al-collector-js');
 const m_alAws = require('./al_aws');
 const m_healthChecks = require('./health_checks');
 const m_stats = require('./statistics');
