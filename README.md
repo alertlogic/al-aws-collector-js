@@ -16,7 +16,7 @@ To install:
 
 in your file
 ```javascript
-{
+const {
     AlAwsCollector,
 } = require('@alertlogic/al-aws-collect-js');
 ```
@@ -26,16 +26,16 @@ in your file
 ## `AlAwsCollector`
 Base class for AWS lambda based collectors
 
-@param {Object} context - context of Lambda's function.
-@param {string} collectorType - collector type (cwe as example).
-@param {string} ingestType - ingest data type (secmsgs, vpcflow, etc).
-@param {string} version - version of collector.
-@param {Object} aimsCreds - Alert Logic API credentials.
-@param {string} [aimsCreds.access_key_id] - Alert Logic API access key id.
-@param {string} [aimsCreds.secret_key] - Alert Logic API secret key.
-@param {function} formatFun - callback formatting function
-@param {Array.<function>} healthCheckFuns - list of custom health check functions (can be just empty, so only common are applied)
-@param {Array.<function>} statsFuns - list of custom stats functions (can be just empty, so only common are applied)
+* @param {Object} context - context of Lambdas function.
+* @param {string} collectorType - collector type (cwe as example).
+* @param {string} ingestType - ingest data type (secmsgs, vpcflow, etc).
+* @param {string} version - version of collector.
+* @param {Object} aimsCreds - Alert Logic API credentials.
+* @param {string} [aimsCreds.access_key_id] - Alert Logic API access key id.
+* @param {string} [aimsCreds.secret_key] - Alert Logic API secret key.
+* @param {function} formatFun - callback formatting function
+* @param {Array.<function>} healthCheckFuns - list of custom health check functions (can be just empty, so only common are applied)
+* @param {Array.<function>} statsFuns - list of custom stats functions (can be just empty, so only common are applied)
 
 # Debugging
 
@@ -54,10 +54,6 @@ console) for the "alertlogic-cwe-collector" AWS Lambda function, with
 value "index" or "*".
 
 See [debug](https://www.npmjs.com/package/debug) for further details.
-
-# Known Issues/ Open Questions
-
-- TBD.
 
 # Useful Links
 
