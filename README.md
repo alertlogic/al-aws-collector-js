@@ -16,7 +16,7 @@ To install:
 
 in your file
 ```javascript
-{
+const {
     AlAwsCollector,
 } = require('@alertlogic/al-aws-collect-js');
 ```
