@@ -55,10 +55,6 @@ value "index" or "*".
 
 See [debug](https://www.npmjs.com/package/debug) for further details.
 
-# Known Issues/ Open Questions
-
-- TBD.
-
 # Useful Links
 
 - [Node.js static code analysis tool](http://jshint.com/install/)
