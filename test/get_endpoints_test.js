@@ -1,6 +1,6 @@
 const assert = require('assert');
 const nock = require('nock');
-const ingestEndpoints = require('../ingest_endpoints');
+const ingestEndpoints = require('../get_endpoints');
 
 describe('Endpoint fetcher', () => {
     const accId = 8675309;
