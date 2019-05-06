@@ -8,7 +8,7 @@ process.env.AWS_REGION = 'us-east-1';
 process.env.AWS_LAMBDA_FUNCTION_NAME = FUNCTION_NAME;
 process.env.al_api = 'api.global-services.global.alertlogic.com';
 process.env.ingest_api = 'ingest.global-services.global.alertlogic.com';
-process.env.azollect_api = 'azcollect.global-services.global.alertlogic.com';
+process.env.azcollect_api = 'azcollect.global-services.global.alertlogic.com';
 process.env.aims_access_key_id = 'aims-key-id';
 process.env.aims_secret_key = 'aims-secret-key-encrypted';
 process.env.aws_lambda_s3_bucket = S3_BUCKET;
@@ -60,6 +60,8 @@ const DEREGISTRATION_TEST_EVENT = {
 };
 
 const REG_URL = '/aws/cwe/123456789012/us-east-1/' + encodeURIComponent(FUNCTION_NAME);
+const GET_INGEST_URL = '/residency/default/serevices/ingest/endpoint';
+const GET_AZCOLLECT_URL = '/residency/default/services/azcollect/endpoint';
 const REG_PARAMS = {
     stackName : STACK_NAME,
     custom_fields: {
@@ -253,7 +255,7 @@ const LAMBDA_FUNCTION_CONFIGURATION = {
             al_api: process.env.al_api,
             aws_lambda_s3_bucket: S3_BUCKET,
             aws_lambda_zipfile_name: S3_ZIPFILE,
-            azollect_api: process.env.azollect_api,
+            azcollect_api: process.env.azcollect_api,
             ingest_api: process.env.ingest_api 
         } 
     },
@@ -282,7 +284,7 @@ const LAMBDA_FUNCTION_CONFIGURATION_CHANGED = {
             al_api: 'new al_api value',
             aws_lambda_s3_bucket: S3_BUCKET,
             aws_lambda_zipfile_name: S3_ZIPFILE,
-            azollect_api: process.env.azollect_api,
+            azcollect_api: process.env.azcollect_api,
             ingest_api: process.env.ingest_api,
             x: 'XXXX'
         } 
@@ -303,6 +305,8 @@ module.exports = {
 
     REGISTRATION_TEST_EVENT : REGISTRATION_TEST_EVENT,
     REG_URL : REG_URL,
+    GET_AZCOLLECT_URL: GET_AZCOLLECT_URL,
+    GET_INGEST_URL: GET_INGEST_URL,
     REG_PARAMS : REG_PARAMS,
     REG_AZCOLLECT_QUERY : REG_AZCOLLECT_QUERY,
 

@@ -145,13 +145,55 @@ class AlAwsCollector {
         const context = this._invokeContext;
         const regValues = Object.assign(this._getAttrs(), custom);
 
-        this._azcollectc.register(regValues)
-            .then(resp => {
+        async.waterfall([
+            (asyncCallback) => {
+                const {
+                    azcollect_api,
+                    ingest_api
+                } = process.env;
+
+                if(!azcollect_api || !ingest_api){
+                    // handling errors like this because the other unit tests seem to indicat that the collectorshould
+                    // register even if there is an error in getting the endpoints.
+                    this.updateEndpoints((err, newConfig) => {
+                        if(err){
+                            console.warn('Error updating endpoints', err);
+                        } else {
+                            // reassign env vars because the config change occurs in the same run in registration.
+                            const {
+                                Environment: {
+                                    Variables
+                                }
+                            } = newConfig;
+
+                            Object.assign(process.env, Variables);
+                            this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, this._collectorType);
+                            this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
+                        }
+
+                        asyncCallback(null);
+                    });
+                } else{
+                    asyncCallback(null);
+                }
+            },
+            (asyncCallback) => {
+                this._azcollectc.register(regValues)
+                    .then(resp => {
+                        asyncCallback(null);
+                    })
+                    .catch(exception => {
+                        asyncCallback("registration error: " + exception);
+                    });
+            }
+        ],
+        (err)=> {
+            if(err){
+                return response.send(event, context, response.FAILED, {Error: err});
+            } else {
                 return response.send(event, context, response.SUCCESS);
-            })
-            .catch(exception => {
-                return response.send(event, context, response.FAILED, {Error: exception});
-            });
+            }
+        });
     }
 
     checkin(callback) {
