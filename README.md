@@ -11,45 +11,31 @@ This repository contains the common JavaScript functions used by Node.js collect
 
 # HOWTO use this library in an AWS Lambda function
 
-Create a `package.json` file for [npm](https://www.npmjs.com/) 2.7.0 (or greater) in the root of your AWS Lambda function Node.js root directory.  Include this repo in the `dependencies` and `devDependencies` section as required.  
+To install:
+`npm i @alertlogic/al-aws-collector-js`
 
-For example:
+in your file
+```javascript
+const {
+    AlAwsCollector,
+} = require('@alertlogic/al-aws-collect-js');
+```
 
-```
-{
-  "name": "al-my-collector",
-  "version": "1.0.0",
-  "description": "Alert Logic My Collector",
-  "repository": {},
-  "private": true,
-  "scripts": {
-    "start": "node index.js",
-    "lint": "jshint --exclude \"./node_modules/*\" **/*.js",
-    "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura mocha --colors --reporter mocha-jenkins-reporter"
-  },
-  "devDependencies": {
-    "aws-sdk": "*",
-    "aws-sdk-mock": "*",
-    "dotenv": "*",
-    "clone": "*",
-    "jshint": "^2.9.5",
-    "mocha": "^3.5.3",
-    "mocha-jenkins-reporter": "^0.3.10",
-    "nyc": "^11.3.0",
-    "rewire": "^2.5.2",
-    "sinon": "^3.3.0"
-  },
-  "dependencies": {
-    "async": "*",
-    "cfn-response": "*",
-    "moment": "^2.19.2",
-    "request": "*",
-    "request-promise-native": "*",
-    "al-aws-collector-js": "git://github.com/alertlogic/al-aws-collector-js#master"
-  },
-  "author": "Alert Logic Inc."
-}
-```
+# API
+
+## `AlAwsCollector`
+Base class for AWS lambda based collectors
+
+* @param {Object} context - context of Lambdas function.
+* @param {string} collectorType - collector type (cwe as example).
+* @param {string} ingestType - ingest data type (secmsgs, vpcflow, etc).
+* @param {string} version - version of collector.
+* @param {Object} aimsCreds - Alert Logic API credentials.
+* @param {string} [aimsCreds.access_key_id] - Alert Logic API access key id.
+* @param {string} [aimsCreds.secret_key] - Alert Logic API secret key.
+* @param {function} formatFun - callback formatting function
+* @param {Array.<function>} healthCheckFuns - list of custom health check functions (can be just empty, so only common are applied)
+* @param {Array.<function>} statsFuns - list of custom stats functions (can be just empty, so only common are applied)
 
 # Debugging
 
@@ -68,10 +54,6 @@ console) for the "alertlogic-cwe-collector" AWS Lambda function, with
 value "index" or "*".
 
 See [debug](https://www.npmjs.com/package/debug) for further details.
-
-# Known Issues/ Open Questions
-
-- TBD.
 
 # Useful Links
 
