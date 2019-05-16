@@ -150,13 +150,27 @@ var arnToAccId = function (arn) {
 
 var setEnv = function(vars, callback) {
     const lambda = new AWS.Lambda();
-    var params = {
-        FunctionName : process.env.AWS_LAMBDA_FUNCTION_NAME,
-        Environment : {
-            Variables : vars
-        }
+
+    const getConfigParams = {
+      FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
     };
-    return lambda.updateFunctionConfiguration(params, callback);
+
+    lambda.getFunctionConfiguration(getConfigParams, (err, config) => {
+        if(err){
+            console.error('Error getting function config, environment variables were not updated', err);
+            return callback(err);
+        }
+        var params = {
+            FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
+            Environment : {
+                Variables : {
+                    ...config.Environment.Variables,
+                    ...vars
+                }
+            }
+        };
+        return lambda.updateFunctionConfiguration(params, callback);
+    });
 };
 
 module.exports = {

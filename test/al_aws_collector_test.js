@@ -5,6 +5,7 @@ const m_response = require('cfn-response');
 const deepEqual = require('deep-equal');
 
 const AlAwsCollector = require('../al_aws_collector');
+const m_al_aws = require('../al_aws');
 var m_alCollector = require('@alertlogic/al-collector-js');
 const m_healthChecks = require('../health_checks');
 var AWS = require('aws-sdk-mock');
@@ -17,6 +18,7 @@ const context = {
 
 var alserviceStub = {};
 var responseStub = {};
+var setEnvStub = {};
 
 function setAlServiceStub() {
     alserviceStub.get = sinon.stub(m_alCollector.AlServiceC.prototype, 'get').callsFake(
@@ -116,6 +118,23 @@ function mockLambdaEndpointsUpdateConfiguration() {
     });
 }
 
+function mockSetEnvStub() {
+    setEnvStub = sinon.stub(m_al_aws, 'setEnv').callsFake((vars, callback)=>{
+        const {
+            ingest_api,
+            azcollect_api
+        } = vars;
+        process.env.ingest_api = ingest_api ? ingest_api : process.env.ingest_api;
+        process.env.azollect_api = azcollect_api ? azcollect_api : process.env.azollect_api;
+        const returnBody = {
+            Environment: {
+                Varaibles: vars
+            }
+        };
+        return callback(null, returnBody);
+    });
+}
+
 function mockLambdaMetricStatistics() {
     AWS.mock('CloudWatch', 'getMetricStatistics', function (params, callback) {
         var ret = colMock.CLOUDWATCH_GET_METRIC_STATS_OK;
@@ -144,18 +163,41 @@ describe('al_aws_collector tests', function() {
             });
 
         setAlServiceStub();
+        mockSetEnvStub();
     });
 
     afterEach(function(){
         restoreAlServiceStub();
+        setEnvStub.restore();
         responseStub.restore();
     });
 
-    it('register success', function(done) {
+    it('register success with env vars set', function(done) {
         var mockContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             succeed : () => {
                 sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
+                sinon.assert.neverCalledWithMatch(alserviceStub.get, colMock.GET_INGEST_URL);
+                sinon.assert.neverCalledWithMatch(alserviceStub.get, colMock.GET_AZCOLLECT_URL);
+                done();
+            }
+        };
+        AlAwsCollector.load().then(function(creds) {
+            var collector = new AlAwsCollector(
+            mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
+            collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+        });
+    });
+
+    it('register success with env vars not set', function(done) {
+        mockLambdaEndpointsUpdateConfiguration();
+        delete process.env.ingest_api;
+        delete process.env.azcollect_api;
+        var mockContext = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            succeed : () => {
+                sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
+                sinon.assert.calledTwice(alserviceStub.get);
                 done();
             }
         };
@@ -752,11 +794,13 @@ describe('al_aws_collector error tests', function() {
             return callback(null, colMock.CF_DESCRIBE_STACKS_RESPONSE);
         });
         mockLambdaMetricStatistics();
+        mockSetEnvStub();
     });
 
     afterEach(function(){
         restoreAlServiceStub();
         responseStub.restore();
+        setEnvStub.restore();
         AWS.restore('CloudFormation', 'describeStacks');
         AWS.restore('CloudWatch', 'getMetricStatistics');
     });
@@ -766,7 +810,7 @@ describe('al_aws_collector error tests', function() {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             done : () => {
                 sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
-                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.FAILED, {Error: 'post error'});
+                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.FAILED, {Error: 'registration error: post error'});
                 done();
             }
         };
