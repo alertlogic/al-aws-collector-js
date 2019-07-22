@@ -221,9 +221,9 @@ class AlAwsCollector {
             );
             collector._azcollectc.checkin(checkin)
             .then(resp => {
-                console.log("Checking for forced update");
+                console.info("Checking for forced update", resp);
                 if(resp && resp.force_update === true){
-                    console.log("Force update");
+                    console.info("Force update");
                     collector.update(callback);
                 }
                 else{
