@@ -198,6 +198,33 @@ describe('al_aws_collector tests', function() {
             });
         });
 
+        it('checkin forced update success', function(done) {
+            alserviceStub.post.restore();
+            alserviceStub.post = sinon.stub(m_alCollector.AlServiceC.prototype, 'post').callsFake(
+                    function fakeFn(path, extraOptions) {
+                        return new Promise(function(resolve, reject) {
+                            return resolve({force_update: true});
+                        });
+                    });
+            let fakeSelfUpdate = sinon.stub(AlAwsCollector.prototype, 'selfUpdate').callsFake(
+                (callback) => { callback(); });
+            let fakeSelfConfigUpdate = sinon.stub(AlAwsCollector.prototype, 'selfConfigUpdate').callsFake(
+                    (callback) => { callback(); });
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                collector.checkin(function(error) {
+                    assert.equal(error, undefined);
+                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
+                    sinon.assert.called(fakeSelfConfigUpdate);
+                    sinon.assert.called(fakeSelfUpdate);
+                    fakeSelfUpdate.restore();
+                    fakeSelfConfigUpdate.restore();
+                    done();
+                });
+            });
+        });
+
         it('checkin with custom check success', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var spyHealthCheck = sinon.spy(function(callback) {

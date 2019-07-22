@@ -179,7 +179,13 @@ class AlAwsCollector {
             );
             collector._azcollectc.checkin(checkin)
             .then(resp => {
-                return callback(null);
+                if(resp && resp.force_update === true){
+                    console.log("Force update");
+                    collector.update(callback);
+                }
+                else{
+                    return callback(null);
+                }
             })
             .catch(exception => {
                 return callback(exception);
