@@ -226,7 +226,6 @@ class AlAwsCollector {
                     collector.update(callback);
                 }
                 else{
-                    console.info("No Forced Update");
                     return callback(null);
                 }
             })
