@@ -223,7 +223,7 @@ class AlAwsCollector {
             .then(resp => {
                 if(resp && resp.force_update === true){
                     console.info("Force update");
-                    collector.update(callback);
+                    return collector.update(callback);
                 }
                 else{
                     return callback(null);
