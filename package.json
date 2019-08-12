@@ -35,7 +35,7 @@
     "@alertlogic/al-collector-js": "1.1.2",
     "cfn-response": "1.0.1",
     "async": "2.6.1",
-    "moment": "2.19.2",
+    "moment": "2.24.0",
     "deep-equal": "1.0.1"
   },
   "author": "Alert Logic Inc."
