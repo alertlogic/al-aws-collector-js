@@ -218,7 +218,7 @@ const S3_CONFIGURATION_FILE_NOCHANGE = {
 const S3_CONFIGURATION_FILE_CHANGE = {
     "Runtime": {
         "path": "Runtime",
-        "value": "nodejs10.16.3"
+        "value": "nodejs10.x"
     },
     "Timeout": {
         "path": "Timeout",
@@ -266,7 +266,7 @@ const LAMBDA_FUNCTION_CONFIGURATION = {
 const LAMBDA_FUNCTION_CONFIGURATION_CHANGED = {
     FunctionName: FUNCTION_NAME,
     FunctionArn: FUNCTION_ARN,
-    Runtime: 'nodejs10.16.3',
+    Runtime: 'nodejs10.x',
     Role: 'arn:aws:iam::352283894008:role/tdosoudil-vpc-lambda',
     Handler: 'index.handler',
     CodeSize: 834,
