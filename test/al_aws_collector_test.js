@@ -874,5 +874,19 @@ describe('al_aws_collector error tests', function() {
             });
         });
     });
+    
+    it('default scheduled event error', function(done) {
+        AlAwsCollector.load().then(function(creds) {
+            var collector = new AlAwsCollector(
+                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+            const testEvent = {
+                Type: 'Unknown'
+            };
+            collector.handleDefaultEvents(testEvent, function(error) {
+                assert.equal(error, 'AWSC0009 Unknown scheduled event detail type: Unknown');
+                done();
+            });
+        });
+    });
 
 });
