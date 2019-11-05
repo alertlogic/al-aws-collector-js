@@ -232,7 +232,10 @@ describe('al_aws_collector tests', function() {
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
                 mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
-                collector.checkin(function(error) {
+                const testEvent = {
+                        Type: 'Checkin'
+                    };
+                collector.handleDefaultEvents(testEvent, function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
                     done();
@@ -677,7 +680,7 @@ describe('al_aws_collector tests', function() {
             });
         
             collector.selfConfigUpdate((err, config) => {
-                assert.equal('Unable to apply new config values', err);
+                assert.equal('AWSC0010 Unable to apply new config values', err);
                 assert.equal(config, undefined);
             });
         });
@@ -719,7 +722,10 @@ describe('al_aws_collector tests', function() {
         it('code update only', () => {
             delete(process.env.aws_lambda_update_config_name);
             
-            collector.update((err) => {
+            const testEvent = {
+                Type: 'SelfUpdate'
+            };
+            collector.handleDefaultEvents(testEvent, (err) => {
                 assert.equal(err, undefined);
             });
             
@@ -837,7 +843,7 @@ describe('al_aws_collector error tests', function() {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             done : () => {
                 sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
-                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.FAILED, {Error: 'registration error: post error'});
+                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.FAILED, {Error: 'AWSC0003 registration error: post error'});
                 done();
             }
         };
