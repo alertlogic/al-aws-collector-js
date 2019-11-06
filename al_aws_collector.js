@@ -4,6 +4,7 @@
  *
  * Base class for AWS Lambda based collectors.
  *
+ * Last message ID: AWSC0010
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -124,7 +125,7 @@ class AlAwsCollector {
                     return mapCallback(null, resp);
                 })
                 .catch(function(exception) {
-                    return mapCallback(`Endpoints ${service} update failure ${exception}`);
+                    return mapCallback(`AWSC0001 Endpoints ${service} update failure ${exception}`);
                 });
             },
             function (mapErr, mapResult) {
@@ -157,7 +158,7 @@ class AlAwsCollector {
                     // register even if there is an error in getting the endpoints.
                     this.updateEndpoints((err, newConfig) => {
                         if(err){
-                            console.warn('Error updating endpoints', err);
+                            console.warn('AWSC0002 Error updating endpoints', err);
                         } else {
                             // reassign env vars because the config change occurs in the same run in registration.
                             const {
@@ -183,7 +184,7 @@ class AlAwsCollector {
                         asyncCallback(null);
                     })
                     .catch(exception => {
-                        asyncCallback("registration error: " + exception);
+                        asyncCallback('AWSC0003 registration error: ' + exception);
                     });
             }
         ],
@@ -222,7 +223,7 @@ class AlAwsCollector {
             collector._azcollectc.checkin(checkin)
             .then(resp => {
                 if(resp && resp.force_update === true){
-                    console.info("Force update");
+                    console.info('AWSC0004 Force update');
                     return collector.update(callback);
                 }
                 else{
@@ -280,7 +281,7 @@ class AlAwsCollector {
                         });
                         break;
                     default:
-                        return callback(`Unknown Alertlogic ingestion type: ${ingestType}`);
+                        return callback(`AWSC0005 Unknown Alertlogic ingestion type: ${ingestType}`);
                 }
             }
         });
@@ -350,16 +351,31 @@ class AlAwsCollector {
         ],
         function(err, config) {
             if (err) {
-                console.info('Lambda self-update config error: ', err);
+                console.info('AWSC0006 Lambda self-update config error: ', err);
             } else {
                 if (config !== undefined) {
-                    console.info('Lambda self-update config successful. Config: ', config);
+                    console.info('AWSC0007 Lambda self-update config successful. Config: ', config);
                 } else {
-                    console.info('Lambda self-update config nothing to update');
+                    console.info('AWSC0008 Lambda self-update config nothing to update');
                 }
             }
             callback(err, config);
         });
+    }
+    
+    handleDefaultEvents(scheduledEvent, callback) {
+        let collector = this;
+        
+        switch (scheduledEvent.Type) {
+            case 'SelfUpdate':
+                return collector.update(callback);
+                break;
+            case 'Checkin':
+                return collector.checkin(callback);
+                break;
+            default:
+                return callback('AWSC0009 Unknown scheduled event detail type: ' + scheduledEvent.Type);
+        }
     }
 
     _applyConfigChanges(newValues, config, callback) {
@@ -376,7 +392,7 @@ class AlAwsCollector {
             return callback(null, newConfig);
         }
         catch(ex) {
-            return callback('Unable to apply new config values');
+            return callback('AWSC0010 Unable to apply new config values');
         }
     }
 

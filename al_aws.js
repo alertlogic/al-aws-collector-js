@@ -49,7 +49,7 @@ var getS3ConfigChanges = function(callback) {
                 let config = JSON.parse(object.Body.toString());
                 return callback(null, config);
             } catch(ex) {
-                return callback('Unable to parse config cahnges.')
+                return callback('Unable to parse config changes.')
             }
         }
     });
