@@ -214,7 +214,7 @@ describe('al_aws_collector tests', function() {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             functionName : colMock.FUNCTION_NAME
         };
-
+        
         before(function() {
             AWS.mock('CloudFormation', 'describeStacks', function(params, callback) {
                 assert.equal(params.StackName, colMock.STACK_NAME);
@@ -229,17 +229,25 @@ describe('al_aws_collector tests', function() {
         });
 
         it('checkin success', function(done) {
-            AlAwsCollector.load().then(function(creds) {
-                var collector = new AlAwsCollector(
-                mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
-                const testEvent = {
-                        Type: 'Checkin'
-                    };
-                collector.handleDefaultEvents(testEvent, function(error) {
-                    assert.equal(error, undefined);
+            var mockCtx = {
+                invokedFunctionArn : colMock.FUNCTION_ARN,
+                functionName : colMock.FUNCTION_NAME,
+                fail : function(error) {
+                    assert.fail(error);
+                },
+                succeed : function() {
                     sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
                     done();
-                });
+                }
+            };
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                        mockCtx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                const testEvent = {
+                    RequestType: 'ScheduledEvent',
+                    Type: 'Checkin'
+                };
+                collector.handleEvent(testEvent);
             });
         });
 
@@ -390,6 +398,7 @@ describe('al_aws_collector tests', function() {
     describe('mocking ingestC', function() {
         var ingestCSecmsgsStub;
         var ingestCVpcFlowStub;
+        var ingestCLogmsgsStub;
         beforeEach(function() {
             ingestCSecmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendSecmsgs').callsFake(
                 function fakeFn(data, callback) {
@@ -404,11 +413,19 @@ describe('al_aws_collector tests', function() {
                         resolve(null);
                     });
                 });
+            
+            ingestCLogmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLogmsgs').callsFake(
+                    function fakeFn(data, callback) {
+                        return new Promise (function(resolve, reject) {
+                            resolve(null);
+                        });
+                    });
         });
         
         afterEach(function() {
             ingestCSecmsgsStub.restore();
             ingestCVpcFlowStub.restore();
+            ingestCLogmsgsStub.restore();
         });
 
         it('dont send if data is falsey', function(done) {
@@ -416,7 +433,7 @@ describe('al_aws_collector tests', function() {
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
                 var data = '';
-                collector.send(data, function(error) {
+                collector.send(data, true, function(error) {
                     assert.ifError(error);
                     sinon.assert.notCalled(ingestCSecmsgsStub);
                     done();
@@ -429,7 +446,7 @@ describe('al_aws_collector tests', function() {
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
                 var data = 'some-data';
-                collector.send(data, function(error) {
+                collector.send(data, true, function(error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCSecmsgsStub);
                     zlib.deflate(data, function(compressionErr, compressed) {
@@ -440,13 +457,28 @@ describe('al_aws_collector tests', function() {
                 });
             });
         });
+        
+        it('send log success', function(done) {
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                var data = 'some-data';
+                collector.send(data, false, function(error) {
+                    assert.ifError(error);
+                    sinon.assert.calledOnce(ingestCLogmsgsStub);
+                    sinon.assert.calledWith(ingestCLogmsgsStub, data);
+                    done();
+                    
+                });
+            });
+        });
 
         it('send vpcflow success', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.VPCFLOW, '1.0.0', creds);
                 var data = 'some-data';
-                collector.send(data, function(error) {
+                collector.send(data, true, function(error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCVpcFlowStub);
                     zlib.deflate(data, function(compressionErr, compressed) {
@@ -463,7 +495,7 @@ describe('al_aws_collector tests', function() {
         var sendStub;
         before(function() {
             sendStub = sinon.stub(AlAwsCollector.prototype, 'send').callsFake(
-                function fakeFn(data, callback) {
+                function fakeFn(data, compress, callback) {
                     return callback(null, null);
                 });
         });
@@ -692,7 +724,12 @@ describe('al_aws_collector tests', function() {
         var fakeSelfConfigUpdate;
         var updateContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
-            functionName : colMock.FUNCTION_NAME
+            functionName : colMock.FUNCTION_NAME,
+            fail : function(error) {
+                assert.fail(error);
+            },
+            succeed : function() {
+            }
         };
         
         beforeEach(() => {
@@ -710,27 +747,28 @@ describe('al_aws_collector tests', function() {
             process.env.aws_lambda_update_config_name = colMock.S3_CONFIGURATION_FILE_NAME;
         });
         
-        it('code and config update', () => {
+        it('code and config update', (done) => {
             collector.update((err) => {
                 assert.equal(err, undefined);
             });
             
             sinon.assert.calledOnce(fakeSelfUpdate);
             sinon.assert.calledOnce(fakeSelfConfigUpdate);
+            done();
         });
         
-        it('code update only', () => {
+        it('code update only', (done) => {
             delete(process.env.aws_lambda_update_config_name);
             
             const testEvent = {
+                RequestType: 'ScheduledEvent',
                 Type: 'SelfUpdate'
             };
-            collector.handleDefaultEvents(testEvent, (err) => {
-                assert.equal(err, undefined);
-            });
+            collector.handleEvent(testEvent);
             
             sinon.assert.calledOnce(fakeSelfUpdate);
             sinon.assert.notCalled(fakeSelfConfigUpdate);
+            done();
         });
     });
 });
@@ -859,7 +897,7 @@ describe('al_aws_collector error tests', function() {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             done : () => {
                 sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
-                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.FAILED, {Error: 'delete error'});
+                sinon.assert.calledWith(responseStub, sinon.match.any, sinon.match.any, m_response.SUCCESS);
                 done();
             }
         };
@@ -883,15 +921,23 @@ describe('al_aws_collector error tests', function() {
     
     it('default scheduled event error', function(done) {
         AlAwsCollector.load().then(function(creds) {
+            let ctx = {
+                invokedFunctionArn : colMock.FUNCTION_ARN,
+                fail : function(error) {
+                    assert.equal(error, 'AWSC0009 Unknown scheduled event detail type: Unknown');
+                    done();
+                },
+                succeed : function() {
+                    assert.fail('Should not be called');
+                }
+            };
             var collector = new AlAwsCollector(
-                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                ctx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
             const testEvent = {
+                RequestType: 'ScheduledEvent',
                 Type: 'Unknown'
             };
-            collector.handleDefaultEvents(testEvent, function(error) {
-                assert.equal(error, 'AWSC0009 Unknown scheduled event detail type: Unknown');
-                done();
-            });
+            collector.handleEvent(testEvent);
         });
     });
 
