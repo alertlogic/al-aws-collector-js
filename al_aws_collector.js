@@ -345,14 +345,10 @@ class AlAwsCollector {
                 collector._formatFun(event, context, asyncCallback);
             },
             function(formattedData, compress, asyncCallback) {
-                var args = Array.from(arguments);
-                asyncCallback = args.pop();
-                formattedData = args.shift();
-                if (args.length > 0) {
-                    compress = args.shift();
-                } else {
+                if(arguments.length === 2 && typeof compress === "function"){
+                    asyncCallback = compress;
                     compress = true;
-                }
+                } 
                 collector.send(formattedData, compress, asyncCallback);
             }
         ],
@@ -360,22 +356,15 @@ class AlAwsCollector {
     }
     
     processLog(messages, formatFun, hostmetaElems, callback) {
-        var args = Array.from(arguments);
-        callback = args.pop();
-        messages = args.shift();
-        formatFun = args.shift();
-        if (args.length > 0) {
-            hostmetaElems = args.shift();
-        } else {
-            hostmetaElems = undefined;
-        }
-        // Somebody can still pass 'undefined' as hostmetaElems and it will be added to args list.
-        var hm = hostmetaElems ? hostmetaElems : this._defaultHostmetaElems();
+        if(arguments.length === 3 && typeof hostmetaElems === "function"){
+            callback = hostmetaElems;
+            hostmetaElems = this._defaultHostmetaElems();
+        } 
         var collector = this;
         
         if (messages && messages.length > 0) {
             m_alCollector.AlLog.buildPayload(
-                    collector._collectorId, collector._collectorId, hm, messages, formatFun, function(err, payload){
+                    collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, function(err, payload){
                 if (err) {
                     return callback(err);
                 } else {
