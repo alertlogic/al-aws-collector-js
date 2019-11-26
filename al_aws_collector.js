@@ -68,7 +68,8 @@ class AlAwsCollector {
     static get IngestTypes() {
         return {
             SECMSGS : 'secmsgs',
-            VPCFLOW : 'vpcflow'
+            VPCFLOW : 'vpcflow',
+            LOGMSGS : 'logmsgs'
         }
     };
     
@@ -84,7 +85,8 @@ class AlAwsCollector {
         })
     }
     
-    constructor(context, collectorType, ingestType, version, aimsCreds, formatFun, healthCheckFuns, statsFuns) {
+    constructor(context, collectorType, ingestType, version, aimsCreds,
+            formatFun, healthCheckFuns, statsFuns) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
         this._collectorType = collectorType;
@@ -97,16 +99,33 @@ class AlAwsCollector {
                 process.env.al_data_residency :
                 'default';
         this._alAzcollectEndpoint = process.env.azollect_api;
-        this._aimsc = new m_alCollector.AimsC(process.env.al_api, aimsCreds);
+        this._aimsc = new m_alCollector.AimsC(process.env.al_api, aimsCreds, null, null, process.env.customer_id);
         this._endpointsc = new m_alCollector.EndpointsC(process.env.al_api, this._aimsc);
         this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, collectorType);
         this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
         this._formatFun = formatFun;
         this._customHealthChecks = healthCheckFuns;
         this._customStatsFuns = statsFuns;
+        this._collectorId = process.env.collector_id;
     }
     
-    _getAttrs() {
+    set context (context) {
+        this._invokeContext = context;
+    }
+    get context () {
+        return this._invokeContext;
+    }
+    
+    done(error) {
+        let context = this._invokeContext;
+        if (error) {
+            return context.fail(error);
+        } else {
+            return context.succeed();
+        }
+    }
+    
+    getProperties() {
         return {
             awsAccountId : m_alAws.arnToAccId(this._arn),
             region : this._region,
@@ -144,7 +163,7 @@ class AlAwsCollector {
     
     register(event, custom) {
         const context = this._invokeContext;
-        const regValues = Object.assign(this._getAttrs(), custom);
+        const regValues = Object.assign(this.getProperties(), custom);
 
         async.waterfall([
             (asyncCallback) => {
@@ -154,8 +173,8 @@ class AlAwsCollector {
                 } = process.env;
 
                 if(!azcollect_api || !ingest_api){
-                    // handling errors like this because the other unit tests seem to indicat that the collectorshould
-                    // register even if there is an error in getting the endpoints.
+                    // handling errors like this because the other unit tests seem to indicate that
+                    // the collector should register even if there is an error in getting the endpoints.
                     this.updateEndpoints((err, newConfig) => {
                         if(err){
                             console.warn('AWSC0002 Error updating endpoints', err);
@@ -179,13 +198,18 @@ class AlAwsCollector {
                 }
             },
             (asyncCallback) => {
-                this._azcollectc.register(regValues)
-                    .then(resp => {
-                        asyncCallback(null);
-                    })
-                    .catch(exception => {
-                        asyncCallback('AWSC0003 registration error: ' + exception);
-                    });
+                if (!process.env.collector_id || process.env.collector_id === 'none') {
+                    this._azcollectc.register(regValues)
+                        .then(resp => {
+                            const newCollectorId = resp.collector ? resp.collector.id : 'none';
+                            return m_alAws.setEnv({ collector_id: newCollectorId }, asyncCallback);
+                        })
+                        .catch(exception => {
+                            return asyncCallback('AWSC0003 registration error: ' + exception);
+                        });
+                } else {
+                    return asyncCallback(null);
+                }
             }
         ],
         (err)=> {
@@ -197,6 +221,13 @@ class AlAwsCollector {
         });
     }
 
+    handleCheckin() {
+        var collector = this;
+        collector.checkin(function(err) {
+            return collector.done(err);
+        });
+    }
+    
     checkin(callback) {
         var collector = this;
         const context = this._invokeContext;
@@ -218,7 +249,7 @@ class AlAwsCollector {
         ],
         function(err, checkinParts) {
             const checkin = Object.assign(
-                collector._getAttrs(), checkinParts[0], checkinParts[1]
+                collector.getProperties(), checkinParts[0], checkinParts[1]
             );
             collector._azcollectc.checkin(checkin)
             .then(resp => {
@@ -238,53 +269,72 @@ class AlAwsCollector {
     
     deregister(event, custom){
         const context = this._invokeContext;
-        const regValues = Object.assign(this._getAttrs(), custom);
+        const regValues = Object.assign(this.getProperties(), custom);
 
         this._azcollectc.deregister(regValues)
             .then(resp => {
                 return response.send(event, context, response.SUCCESS);
             })
             .catch(exception => {
-                return response.send(event, context, response.FAILED, {Error: exception});
+                console.warn('AWSC0011 Collector deregistration failed. ', exception);
+                // Respond with SUCCESS in order to delete CF stack with no issues.
+                return response.send(event, context, response.SUCCESS);
             });
     }
 
-    send(data, callback){
+    send(data, compress = true, callback) {
         var collector = this;
-        var ingestType = collector._ingestType;
-
+        
         if(!data){
             return callback(null);
         }
-
-        zlib.deflate(data, function(compressionErr, compressed) {
-            if (compressionErr) {
-                return callback(compressionErr);
-            } else {
-                switch (ingestType) {
-                    case AlAwsCollector.IngestTypes.SECMSGS:
-                        collector._ingestc.sendSecmsgs(compressed)
-                        .then(resp => {
-                            return callback(null, resp);
-                        })
-                        .catch(exception => {
-                            return callback(exception);
-                        });
-                        break;
-                    case AlAwsCollector.IngestTypes.VPCFLOW:
-                        collector._ingestc.sendVpcFlow(compressed)
-                        .then(resp => {
-                            return callback(null, resp);
-                        })
-                        .catch(exception => {
-                            return callback(exception);
-                        });
-                        break;
-                    default:
-                        return callback(`AWSC0005 Unknown Alertlogic ingestion type: ${ingestType}`);
+        if (compress) {
+            zlib.deflate(data, function(compressionErr, compressed) {
+                if (compressionErr) {
+                    return callback(compressionErr);
+                } else {
+                    return collector._send(compressed, callback);
                 }
-            }
-        });
+            });
+        } else {
+            return collector._send(data, callback);
+        }
+    }
+    
+    _send(data, callback) {
+        var collector = this;
+        var ingestType = collector._ingestType;
+        switch (ingestType) {
+            case AlAwsCollector.IngestTypes.SECMSGS:
+                collector._ingestc.sendSecmsgs(data)
+                .then(resp => {
+                    return callback(null, resp);
+                })
+                .catch(exception => {
+                    return callback(exception);
+                });
+                break;
+            case AlAwsCollector.IngestTypes.VPCFLOW:
+                collector._ingestc.sendVpcFlow(data)
+                .then(resp => {
+                    return callback(null, resp);
+                })
+                .catch(exception => {
+                    return callback(exception);
+                });
+                break;
+            case AlAwsCollector.IngestTypes.LOGMSGS:
+                collector._ingestc.sendLogmsgs(data)
+                .then(resp => {
+                    return callback(null, resp);
+                })
+                .catch(exception => {
+                    return callback(exception);
+                });
+                break;
+            default:
+                return callback(`AWSC0005 Unknown Alertlogic ingestion type: ${ingestType}`);
+        }
     }
     
     process(event, callback) {
@@ -294,11 +344,44 @@ class AlAwsCollector {
             function(asyncCallback) {
                 collector._formatFun(event, context, asyncCallback);
             },
-            function(formatedData, asyncCallback) {
-                collector.send(formatedData, asyncCallback);
+            function(formattedData, compress, asyncCallback) {
+                if(arguments.length === 2 && typeof compress === "function"){
+                    asyncCallback = compress;
+                    compress = true;
+                } 
+                collector.send(formattedData, compress, asyncCallback);
             }
         ],
         callback);
+    }
+    
+    processLog(messages, formatFun, hostmetaElems, callback) {
+        if(arguments.length === 3 && typeof hostmetaElems === "function"){
+            callback = hostmetaElems;
+            hostmetaElems = this._defaultHostmetaElems();
+        } 
+        var collector = this;
+        
+        if (messages && messages.length > 0) {
+            m_alCollector.AlLog.buildPayload(
+                    collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, function(err, payload){
+                if (err) {
+                    return callback(err);
+                } else {
+                    return collector.send(payload, false, callback);
+                }
+            });
+        } else {
+            return callback(null, {});
+        }
+        
+    }
+    
+    handleUpdate() {
+        var collector = this;
+        collector.update(function(err) {
+            return collector.done(err);
+        });
     }
     
     update(callback) {
@@ -363,21 +446,30 @@ class AlAwsCollector {
         });
     }
     
-    handleDefaultEvents(scheduledEvent, callback) {
+    handleEvent(event) {
         let collector = this;
-        
-        switch (scheduledEvent.Type) {
-            case 'SelfUpdate':
-                return collector.update(callback);
-                break;
-            case 'Checkin':
-                return collector.checkin(callback);
-                break;
-            default:
-                return callback('AWSC0009 Unknown scheduled event detail type: ' + scheduledEvent.Type);
+        let context = this._invokeContext;
+        switch (event.RequestType) {
+        case 'ScheduledEvent':
+            switch (event.Type) {
+                case 'SelfUpdate':
+                    return collector.handleUpdate();
+                    break;
+                case 'Checkin':
+                    return collector.handleCheckin();
+                    break;
+                default:
+                    return context.fail('AWSC0009 Unknown scheduled event detail type: ' + event.Type);
+            }
+        case 'Create':
+            return collector.register(event, {});
+        case 'Delete':
+            return collector.deregister(event, {});
+        default:
+            return context.fail('AWSC0012 Unknown event:' + event);
         }
     }
-
+    
     _applyConfigChanges(newValues, config, callback) {
         var jsonConfig = JSON.stringify(config);
         var newConfig = JSON.parse(jsonConfig); 
@@ -424,6 +516,19 @@ class AlAwsCollector {
             delete(newConfig.VpcConfig.VpcId);
         delete(newConfig.MasterArn);
         return newConfig;
+    }
+    
+    _defaultHostmetaElems() {
+        return [
+          {
+            key: 'host_type',
+            value: {str: 'lambda'}
+          },
+          {
+            key: 'local_hostname',
+            value: {str: process.env.AWS_LAMBDA_FUNCTION_NAME}
+          }
+        ];
     }
 }
 

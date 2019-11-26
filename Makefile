@@ -12,6 +12,9 @@ compile: deps
 
 test: compile
 	npm run test
+
+publish:
+	npm run publish
 	
 clean:
 	rm -rf node_modules
