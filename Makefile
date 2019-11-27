@@ -14,7 +14,7 @@ test: compile
 	npm run test
 
 publish:
-	npm run publish
+	npm run rel
 	
 clean:
 	rm -rf node_modules

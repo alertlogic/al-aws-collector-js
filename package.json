@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "jshint --exclude \"./node_modules/*\" **/*.js",
     "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura mocha --colors --reporter mocha-jenkins-reporter",
-    "publish": "npm publish --access=public"
+    "rel": "npm publish --access=public"
   },
   "main": "index.js",
   "maintainers": [
