@@ -15,6 +15,7 @@ process.env.aws_lambda_s3_bucket = S3_BUCKET;
 process.env.stack_name = STACK_NAME;
 process.env.aws_lambda_zipfile_name = S3_ZIPFILE;
 process.env.aws_lambda_update_config_name = S3_CONFIGURATION_FILE_NAME;
+process.env.collector_id = 'collector-id';
 
 
 const AIMS_TEST_CREDS = {

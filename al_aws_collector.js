@@ -131,7 +131,8 @@ class AlAwsCollector {
             region : this._region,
             functionName : this._name,
             version : this._version,
-            dataType : this._ingestType
+            dataType : this._ingestType,
+            collectorId : this._collectorId
         };
     }
     
@@ -198,18 +199,14 @@ class AlAwsCollector {
                 }
             },
             (asyncCallback) => {
-                if (!process.env.collector_id || process.env.collector_id === 'none') {
-                    this._azcollectc.register(regValues)
-                        .then(resp => {
-                            const newCollectorId = resp.collector ? resp.collector.id : 'none';
-                            return m_alAws.setEnv({ collector_id: newCollectorId }, asyncCallback);
-                        })
-                        .catch(exception => {
-                            return asyncCallback('AWSC0003 registration error: ' + exception);
-                        });
-                } else {
-                    return asyncCallback(null);
-                }
+                this._azcollectc.register(regValues)
+                    .then(resp => {
+                        const newCollectorId = resp.collector ? resp.collector.id : 'none';
+                        return m_alAws.setEnv({ collector_id: newCollectorId }, asyncCallback);
+                    })
+                    .catch(exception => {
+                        return asyncCallback('AWSC0003 registration error: ' + exception);
+                    });
             }
         ],
         (err)=> {
