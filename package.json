@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "jshint --exclude \"./node_modules/*\" **/*.js",
     "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura mocha --colors --reporter mocha-jenkins-reporter",
-    "publish": "npm publish --access=public"
+    "rel": "npm publish --access=public"
   },
   "main": "index.js",
   "maintainers": [
