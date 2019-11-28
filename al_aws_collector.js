@@ -164,7 +164,8 @@ class AlAwsCollector {
     
     register(event, custom) {
         const context = this._invokeContext;
-        const regValues = Object.assign(this.getProperties(), custom);
+        let regValues = Object.assign(this.getProperties(), custom);
+        regValues.stackName = event.ResourceProperties.StackName;
 
         async.waterfall([
             (asyncCallback) => {

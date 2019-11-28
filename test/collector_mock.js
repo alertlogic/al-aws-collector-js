@@ -72,10 +72,14 @@ const REG_PARAMS = {
 };
 const REG_AZCOLLECT_QUERY = {
     body: {
-        cf_stack_name: STACK_NAME,
-        version: '1.0.0',
-        data_type: 'vpcflow',
-        something_else: 'testtest'
+        awsAccountId: "123456789012",
+        collectorId: "collector-id",
+        custom_fields: { data_type: "vpcflow", something_else: "testtest" },
+        dataType: "secmsgs",
+        functionName: "test-VpcFlowCollectLambdaFunction",
+        region: "us-east-1",
+        stackName: STACK_NAME,
+        version: "1.0.0"
     }
 };
 
