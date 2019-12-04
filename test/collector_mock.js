@@ -72,14 +72,14 @@ const REG_PARAMS = {
 };
 const REG_AZCOLLECT_QUERY = {
     body: {
-        awsAccountId: "123456789012",
-        collectorId: "collector-id",
-        custom_fields: { data_type: "vpcflow", something_else: "testtest" },
-        dataType: "secmsgs",
-        functionName: "test-VpcFlowCollectLambdaFunction",
-        region: "us-east-1",
+        awsAccountId: '123456789012',
+        collectorId: 'collector-id',
+        custom_fields: { data_type: 'vpcflow', something_else: 'testtest' },
+        dataType: 'secmsgs',
+        functionName: 'test-VpcFlowCollectLambdaFunction',
+        region: 'us-east-1',
         stackName: STACK_NAME,
-        version: "1.0.0"
+        version: '1.0.0'
     }
 };
 
@@ -110,10 +110,14 @@ const CHECKIN_URL = '/aws/cwe/checkin/123456789012/us-east-1/' + encodeURICompon
 
 const CHECKIN_AZCOLLECT_QUERY = {
     body: {
+        awsAccountId: '123456789012',
+        collectorId: 'collector-id',
+        dataType: 'secmsgs',
+        details: [],
+        functionName: 'test-VpcFlowCollectLambdaFunction',
+        region: 'us-east-1',
         version: '1.0.0',
         status: 'ok',
-        error_code: undefined,
-        details: [],
         statistics:[
             {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
             {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
@@ -123,6 +127,11 @@ const CHECKIN_AZCOLLECT_QUERY = {
 
 const CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR = {
     body: {
+        awsAccountId: '123456789012',
+        collectorId: 'collector-id',
+        dataType: 'secmsgs',
+        functionName: 'test-VpcFlowCollectLambdaFunction',
+        region: 'us-east-1',
         version: '1.0.0',
         status: 'error',
         error_code: 'MYCODE',
@@ -161,6 +170,11 @@ const CF_DESCRIBE_STACKS_RESPONSE = {
 
 const CHECKIN_ERROR_AZCOLLECT_QUERY = {
     body: {
+        awsAccountId: '123456789012',
+        collectorId: 'collector-id',
+        dataType: 'secmsgs',
+        functionName: 'test-VpcFlowCollectLambdaFunction',
+        region: 'us-east-1',
         version: '1.0.0',
         status: 'error',
         error_code: 'ALAWS00002',
