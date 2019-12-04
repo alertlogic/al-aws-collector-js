@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -33,7 +33,7 @@
     "sinon": "^7.5.0"
   },
   "dependencies": {
-    "@alertlogic/al-collector-js": "1.4.0",
+    "@alertlogic/al-collector-js": "1.4.1",
     "cfn-response": "1.0.1",
     "async": "3.0.1",
     "moment": "2.24.0",
