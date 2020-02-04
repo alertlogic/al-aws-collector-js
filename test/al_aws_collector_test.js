@@ -603,6 +603,71 @@ describe('al_aws_collector tests', function() {
         });
     });
     
+    describe('done() function', () => {
+        var collector;
+
+        it('calls success when there is no error', () => {
+
+            const testContext = {
+                succeed: () => true,
+                fail: () => false
+            };
+
+            collector = new AlAwsCollector(
+                testContext,
+                'cwe',
+                AlAwsCollector.IngestTypes.SECMSGS,
+                '1.0.0',
+                colMock.AIMS_TEST_CREDS
+            );
+
+            const doneResult = collector.done();
+            assert.ok(doneResult);
+        });
+
+        it('returns errors that can be stringified in their raw state', () => {
+            const stringifialbleError = {
+                foo: "bar"
+            };
+            const testContext = {
+                succeed: () => true,
+                fail: (error) => error
+            };
+
+            collector = new AlAwsCollector(
+                testContext,
+                'cwe',
+                AlAwsCollector.IngestTypes.SECMSGS,
+                '1.0.0',
+                colMock.AIMS_TEST_CREDS
+            );
+
+            const doneResult = collector.done(stringifialbleError);
+            assert.ok(doneResult === stringifialbleError);
+        });
+
+        it('returns errors that cannot be JSON stringified as a string', () => {
+            const circRefError = {};
+            circRefError.foo = circRefError;
+            const testContext = {
+                succeed: () => true,
+                fail: (error) => error
+            };
+
+            collector = new AlAwsCollector(
+                testContext,
+                'cwe',
+                AlAwsCollector.IngestTypes.SECMSGS,
+                '1.0.0',
+                colMock.AIMS_TEST_CREDS
+            );
+
+            const doneResult = collector.done(circRefError);
+            assert.ok(doneResult !== circRefError);
+            assert.ok(typeof doneResult === 'string');
+        });
+    });
+
     describe('applyConfigChanges() function', () => {
         var object;
         var newValues;

@@ -10,6 +10,7 @@
  */
 'use strict';
 
+const util = require('util');
 const AWS = require('aws-sdk');
 const moment = require('moment');
 const zlib = require('zlib');
@@ -119,7 +120,26 @@ class AlAwsCollector {
     done(error) {
         let context = this._invokeContext;
         if (error) {
-            return context.fail(error);
+            // The lambda context tires to stringify errors, so we should check if they can be stringified before we pass them to the context
+            try{
+                const stringifiedError = JSON.stringify(error);
+                return context.fail(error);
+            }
+            catch (stringifyError){
+                // Can't stringify the whole error, so lets try and get some useful info from it
+                let errorString;
+
+                if (error.toJSON){
+                    errorString = error.toJSON();
+                } else if (error.message){
+                    errorString = error.message;
+                } else {
+                    // when all else fails, stringify it the gross way with inspect
+                    errorString = util.inspect(error);
+                }
+
+                return context.fail(errorString);
+            }
         } else {
             return context.succeed();
         }
