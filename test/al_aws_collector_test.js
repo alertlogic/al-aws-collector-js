@@ -604,14 +604,7 @@ describe('al_aws_collector tests', function() {
     });
     
     describe('done() function', () => {
-        var object;
-        var newValues;
         var collector;
-        var applyConfigChangesContext = {
-            invokedFunctionArn : colMock.FUNCTION_ARN,
-            functionName : colMock.FUNCTION_NAME
-        };
-
 
         it('calls success when there is no error', () => {
 
@@ -661,8 +654,8 @@ describe('al_aws_collector tests', function() {
                 fail: (error) => error
             };
 
-            testContext = new AlAwsCollector(
-                context,
+            collector = new AlAwsCollector(
+                testContext,
                 'cwe',
                 AlAwsCollector.IngestTypes.SECMSGS,
                 '1.0.0',
