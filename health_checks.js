@@ -50,12 +50,17 @@ function checkCloudFormationStatus(stackName, callback) {
     });
 }
 
-function getHealthStatus(context, customChecks, callback) {
+function getHealthStatus(context, customChecks, collector, callback) {
+    const appliedHealthChecks = customChecks.map(check => {
+        return function(asyncCallback){
+            return check.call(collector, asyncCallback);
+        };
+    });  
     async.parallel([
         function(asyncCallback) {
             checkCloudFormationStatus(process.env.stack_name, asyncCallback);
         }
-    ].concat(customChecks),
+    ].concat(appliedHealthChecks),
     function(errMsg) {
         var status = {};
         if (errMsg) {

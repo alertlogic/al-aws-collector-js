@@ -255,7 +255,7 @@ class AlAwsCollector {
         //it is assumed that all functions here always return err != null
         async.parallel([
             function(asyncCallback) {
-                m_healthChecks.getHealthStatus(context, checks, function(err, healthStatus) {
+                m_healthChecks.getHealthStatus(context, checks, collector, function(err, healthStatus) {
                     return asyncCallback(null, healthStatus);
                 });
             },
