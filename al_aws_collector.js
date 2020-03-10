@@ -255,7 +255,7 @@ class AlAwsCollector {
         //it is assumed that all functions here always return err != null
         async.parallel([
             function(asyncCallback) {
-                collector.getHealthStatus(context, checks, collector, function(err, healthStatus) {
+                collector.getHealthStatus(context, checks, function(err, healthStatus) {
                     return asyncCallback(null, healthStatus);
                 });
             },
@@ -285,8 +285,8 @@ class AlAwsCollector {
         });
     }
     
-    getHealthStatus(context, customChecks, collector, callback) {
-        const appliedHealthChecks = customChecks.map(check => check.bind(collector));  
+    getHealthStatus(context, customChecks, callback) {
+        const appliedHealthChecks = customChecks.map(check => check.bind(this));  
         async.parallel([
             function(asyncCallback) {
                 m_healthChecks.checkCloudFormationStatus(process.env.stack_name, asyncCallback);
@@ -312,6 +312,7 @@ class AlAwsCollector {
     }
 
     getStatistics(context, statsFuns, callback) {
+        const appliedStatsFuns = statsFuns.map(fun => fun.bind(this));
         var allFuns = [
             function(asyncCallback) {
                 return m_alStatsTmpls.getLambdaMetrics(
@@ -323,7 +324,7 @@ class AlAwsCollector {
                     context.functionName, 'Errors', asyncCallback
                 );
             }
-        ].concat(statsFuns);
+        ].concat(appliedStatsFuns);
         async.parallel(allFuns,
             function(err, res) {
                 if (err) {
