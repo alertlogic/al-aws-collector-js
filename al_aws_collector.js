@@ -4,7 +4,7 @@
  *
  * Base class for AWS Lambda based collectors.
  *
- * Last message ID: AWSC0010
+ * Last message ID: AWSC0011
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -120,29 +120,44 @@ class AlAwsCollector {
     done(error) {
         let context = this._invokeContext;
         if (error) {
-            // The lambda context tires to stringify errors, so we should check if they can be stringified before we pass them to the context
+            // The lambda context tries to stringify errors, 
+            // so we should check if they can be stringified before we pass them to the context
+            let errorString;
             try{
-                const stringifiedError = JSON.stringify(error);
-                return context.fail(error);
+                errorString = JSON.stringify(error);
             }
             catch (stringifyError){
                 // Can't stringify the whole error, so lets try and get some useful info from it
-                let errorString;
-
-                if (error.toJSON){
-                    errorString = error.toJSON();
-                } else if (error.message){
-                    errorString = error.message;
-                } else {
-                    // when all else fails, stringify it the gross way with inspect
-                    errorString = util.inspect(error);
-                }
-
-                return context.fail(errorString);
+                errorString = error.toJSON ? error.toJSON() :
+                    error.message ? error.message :
+                        // when all else fails, stringify it the gross way with inspect
+                        util.inspect(error);
             }
+            const status = this.prepareErrorStatus(errorString);
+            this.sendStatus(status, (sendError) => {
+                console.warn('AWSC0011 Collector status send failed', sendError);
+                context.fail(errorString);
+            });
         } else {
             return context.succeed();
         }
+    }
+    
+    prepareErrorStatus(errorString, streamName = 'error', collectionType) {
+        let cType = collectionType ? collectionType : this._ingestType;
+        return {
+            stream_name: streamName,
+            status_type: 'error',
+            stream_type: 'collector',
+            message_type: 'collector_status',
+            host_uuid: this._collectorId,
+            data: [
+                {error: errorString}
+            ],
+            agent_type: this._collectorType,
+            collection_type: cType,
+            timestamp: moment().unix()
+        };
     }
     
     getProperties() {
@@ -353,6 +368,28 @@ class AlAwsCollector {
             });
     }
 
+    sendStatus(status, callback) {
+        let collector = this;
+        
+        if(!status){
+            return callback(null);
+        } else {
+            zlib.deflate(JSON.stringify([status]), function(compressionErr, compressed) {
+                if (compressionErr) {
+                    return callback(compressionErr);
+                } else {
+                    collector._ingestc.sendAgentstatus(compressed)
+                    .then(resp => {
+                        return callback(null, resp);
+                    })
+                    .catch(exception => {
+                        return callback(exception);
+                    });
+                }
+            });
+        }
+    }
+    
     send(data, compress = true, callback) {
         var collector = this;
         
@@ -416,7 +453,7 @@ class AlAwsCollector {
                 collector._formatFun(event, context, asyncCallback);
             },
             function(formattedData, compress, asyncCallback) {
-                if(arguments.length === 2 && typeof compress === "function"){
+                if(arguments.length === 2 && typeof compress === 'function'){
                     asyncCallback = compress;
                     compress = true;
                 } 
@@ -427,7 +464,7 @@ class AlAwsCollector {
     }
     
     processLog(messages, formatFun, hostmetaElems, callback) {
-        if(arguments.length === 3 && typeof hostmetaElems === "function"){
+        if(arguments.length === 3 && typeof hostmetaElems === 'function'){
             callback = hostmetaElems;
             hostmetaElems = this._defaultHostmetaElems();
         } 
