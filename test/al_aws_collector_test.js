@@ -399,6 +399,8 @@ describe('al_aws_collector tests', function() {
         var ingestCSecmsgsStub;
         var ingestCVpcFlowStub;
         var ingestCLogmsgsStub;
+        var ingestCAgentstatusStub;
+        
         beforeEach(function() {
             ingestCSecmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendSecmsgs').callsFake(
                 function fakeFn(data, callback) {
@@ -420,12 +422,20 @@ describe('al_aws_collector tests', function() {
                             resolve(null);
                         });
                     });
+            
+            ingestCAgentstatusStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendAgentstatus').callsFake(
+                    function fakeFn(data, callback) {
+                        return new Promise (function(resolve, reject) {
+                            resolve(null);
+                        });
+                    });
         });
         
         afterEach(function() {
             ingestCSecmsgsStub.restore();
             ingestCVpcFlowStub.restore();
             ingestCLogmsgsStub.restore();
+            ingestCAgentstatusStub.restore();
         });
 
         it('dont send if data is falsey', function(done) {
@@ -625,13 +635,17 @@ describe('al_aws_collector tests', function() {
             assert.ok(doneResult);
         });
 
-        it('returns errors that can be stringified in their raw state', () => {
+        it('returns errors that can be stringified in their raw state', (done) => {
             const stringifialbleError = {
                 foo: "bar"
             };
             const testContext = {
                 succeed: () => true,
-                fail: (error) => error
+                fail: (error) => {
+                    assert.equal(error, JSON.stringify(stringifialbleError));
+                    done();
+                }
+
             };
 
             collector = new AlAwsCollector(
@@ -642,8 +656,7 @@ describe('al_aws_collector tests', function() {
                 colMock.AIMS_TEST_CREDS
             );
 
-            const doneResult = collector.done(stringifialbleError);
-            assert.ok(doneResult === stringifialbleError);
+            collector.done(stringifialbleError);
         });
 
         it('returns errors that cannot be JSON stringified as a string', () => {
@@ -651,7 +664,11 @@ describe('al_aws_collector tests', function() {
             circRefError.foo = circRefError;
             const testContext = {
                 succeed: () => true,
-                fail: (error) => error
+                fail: (error) => {
+                    assert.notEqual(error, circRefError);
+                    assert.ok(typeof error === 'string');
+                    assert.equal(error, '{ foo: [Circular] }');
+                }
             };
 
             collector = new AlAwsCollector(
@@ -662,9 +679,7 @@ describe('al_aws_collector tests', function() {
                 colMock.AIMS_TEST_CREDS
             );
 
-            const doneResult = collector.done(circRefError);
-            assert.ok(doneResult !== circRefError);
-            assert.ok(typeof doneResult === 'string');
+            collector.done(circRefError);
         });
     });
 
