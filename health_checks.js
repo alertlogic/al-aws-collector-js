@@ -9,7 +9,6 @@
  */
 
 const AWS = require('aws-sdk');
-const async = require('async');
 
 
 /**
@@ -50,31 +49,6 @@ function checkCloudFormationStatus(stackName, callback) {
     });
 }
 
-function getHealthStatus(context, customChecks, callback) {
-    async.parallel([
-        function(asyncCallback) {
-            checkCloudFormationStatus(process.env.stack_name, asyncCallback);
-        }
-    ].concat(customChecks),
-    function(errMsg) {
-        var status = {};
-        if (errMsg) {
-            console.warn('ALAWS00001 Health check failed with',  errMsg);
-            status = {
-                status: errMsg.status,
-                error_code: errMsg.code,
-                details: [errMsg.details]
-            };
-        } else {
-            status = {
-                status: 'ok',
-                details: []
-            };
-        }
-        return callback(null, status);
-    });
-}
-
 
 function stringify(jsonObj) {
     return JSON.stringify(jsonObj, null, 0);
@@ -107,6 +81,6 @@ function errorMsg(code, message) {
 }
 
 module.exports = {
-    getHealthStatus : getHealthStatus,
-    errorMsg : errorMsg
+    errorMsg : errorMsg,
+    checkCloudFormationStatus : checkCloudFormationStatus
 };

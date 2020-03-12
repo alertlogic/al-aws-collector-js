@@ -21,7 +21,7 @@ const deepEqual = require('deep-equal');
 const m_alCollector = require('@alertlogic/al-collector-js');
 const m_alAws = require('./al_aws');
 const m_healthChecks = require('./health_checks');
-const m_stats = require('./statistics');
+const m_alStatsTmpls = require('./statistics_templates');
 
 var AIMS_DECRYPTED_CREDS = null;
 
@@ -255,12 +255,12 @@ class AlAwsCollector {
         //it is assumed that all functions here always return err != null
         async.parallel([
             function(asyncCallback) {
-                m_healthChecks.getHealthStatus(context, checks, function(err, healthStatus) {
+                collector.getHealthStatus(context, checks, function(err, healthStatus) {
                     return asyncCallback(null, healthStatus);
                 });
             },
             function(asyncCallback) {
-                m_stats.getStatistics(context, statsFuns, function(err, statistics) {
+                collector.getStatistics(context, statsFuns, function(err, statistics) {
                     return asyncCallback(null, statistics);
                 });
             }
@@ -284,6 +284,58 @@ class AlAwsCollector {
             });
         });
     }
+    
+    getHealthStatus(context, customChecks, callback) {
+        const appliedHealthChecks = customChecks.map(check => check.bind(this));  
+        async.parallel([
+            function(asyncCallback) {
+                m_healthChecks.checkCloudFormationStatus(process.env.stack_name, asyncCallback);
+            }
+        ].concat(appliedHealthChecks),
+        function(errMsg) {
+            var status = {};
+            if (errMsg) {
+                console.warn('ALAWS00001 Health check failed with',  errMsg);
+                status = {
+                    status: errMsg.status,
+                    error_code: errMsg.code,
+                    details: [errMsg.details]
+                };
+            } else {
+                status = {
+                    status: 'ok',
+                    details: []
+                };
+            }
+            return callback(null, status);
+        });
+    }
+
+    getStatistics(context, statsFuns, callback) {
+        const appliedStatsFuns = statsFuns.map(fun => fun.bind(this));
+        var allFuns = [
+            function(asyncCallback) {
+                return m_alStatsTmpls.getLambdaMetrics(
+                    context.functionName, 'Invocations', asyncCallback
+                );
+            },
+            function(asyncCallback) {
+                return m_alStatsTmpls.getLambdaMetrics(
+                    context.functionName, 'Errors', asyncCallback
+                );
+            }
+        ].concat(appliedStatsFuns);
+        async.parallel(allFuns,
+            function(err, res) {
+                if (err) {
+                    return callback(null, {statistics : []});
+                } else {
+                    return callback(null, {statistics : res});
+                }
+            }
+        );
+    }
+
     
     deregister(event, custom){
         const context = this._invokeContext;
