@@ -4,7 +4,7 @@
  *
  * Base class for AWS Lambda based collectors.
  *
- * Last message ID: AWSC0011
+ * Last message ID: AWSC0013
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -134,8 +134,7 @@ class AlAwsCollector {
                         util.inspect(error);
             }
             const status = this.prepareErrorStatus(errorString);
-            this.sendStatus(status, (sendError) => {
-                console.warn('AWSC0011 Collector status send failed', sendError);
+            this.sendStatus(status, () => {
                 context.fail(errorString);
             });
         } else {
@@ -383,6 +382,7 @@ class AlAwsCollector {
                         return callback(null, resp);
                     })
                     .catch(exception => {
+                        console.warn('AWSC0013 Collector status send failed: ', exception);
                         return callback(exception);
                     });
                 }
