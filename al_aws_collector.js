@@ -142,12 +142,12 @@ class AlAwsCollector {
         }
     }
     
-    prepareErrorStatus(errorString, streamName = 'error', collectionType) {
+    prepareErrorStatus(errorString, streamName = 'none', collectionType) {
         let cType = collectionType ? collectionType : this._ingestType;
         return {
             stream_name: streamName,
             status_type: 'error',
-            stream_type: 'collector',
+            stream_type: 'status',
             message_type: 'collector_status',
             host_uuid: this._collectorId,
             data: [
@@ -373,7 +373,7 @@ class AlAwsCollector {
         if(!status){
             return callback(null);
         } else {
-            zlib.deflate(JSON.stringify([status]), function(compressionErr, compressed) {
+            zlib.deflate(JSON.stringify([status]), (compressionErr, compressed) => {
                 if (compressionErr) {
                     return callback(compressionErr);
                 } else {
