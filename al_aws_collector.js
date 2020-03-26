@@ -27,6 +27,23 @@ var AIMS_DECRYPTED_CREDS = null;
 
 const AL_SERVICES = ['ingest', 'azcollect'];
 
+const NOUPDATE_CONFIG_PARAMS = [
+    'FunctionArn',
+    'Role',
+    'CodeSize',
+    'LastModified',
+    'CodeSha256',
+    'Version',
+    'MasterArn',
+    'RevisionId',
+    'State',
+    'StateReason',
+    'StateReasonCode',
+    'LastUpdateStatus',
+    'LastUpdateStatusReason',
+    'LastUpdateStatusReasonCode'
+];
+
 function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
         return callback(null, AIMS_DECRYPTED_CREDS);
@@ -142,17 +159,23 @@ class AlAwsCollector {
         }
     }
     
-    prepareErrorStatus(errorString, streamName = 'none', collectionType) {
+    prepareErrorStatus(errorString, streamName = 'none', collectionType, errorCode) {
         let cType = collectionType ? collectionType : this._ingestType;
+        let errorData = errorCode ? 
+            [
+                {error: errorString},
+                {code: errorCode}
+            ] :
+            [
+                {error: errorString}
+            ];
         return {
             stream_name: streamName,
             status_type: 'error',
             stream_type: 'status',
             message_type: 'collector_status',
             host_uuid: this._collectorId,
-            data: [
-                {error: errorString}
-            ],
+            data: errorData,
             agent_type: this._collectorType,
             collection_type: cType,
             timestamp: moment().unix()
@@ -536,7 +559,7 @@ class AlAwsCollector {
                     let updateConfig = collector._filterDisallowedConfigParams(newConfig);
                     m_alAws.updateLambdaConfig(updateConfig, asyncCallback);
                 } else {
-                    asyncCallback(null);
+                    asyncCallback();
                 }
             }
         ],
@@ -545,7 +568,7 @@ class AlAwsCollector {
                 console.info('AWSC0006 Lambda self-update config error: ', err);
             } else {
                 if (config !== undefined) {
-                    console.info('AWSC0007 Lambda self-update config successful. Config: ', config);
+                    console.info('AWSC0007 Lambda self-update config successful.');
                 } else {
                     console.info('AWSC0008 Lambda self-update config nothing to update');
                 }
@@ -579,8 +602,9 @@ class AlAwsCollector {
     }
     
     _applyConfigChanges(newValues, config, callback) {
-        var jsonConfig = JSON.stringify(config);
-        var newConfig = JSON.parse(jsonConfig); 
+        var newConfig = {};
+        Object.assign(newConfig, config);
+        
         
         try {
             Object.keys(newValues).forEach(
@@ -592,7 +616,7 @@ class AlAwsCollector {
             return callback(null, newConfig);
         }
         catch(ex) {
-            return callback('AWSC0010 Unable to apply new config values');
+            return callback(`AWSC0010 Unable to apply new config values ${ex}`);
         }
     }
 
@@ -612,17 +636,13 @@ class AlAwsCollector {
     }
 
     _filterDisallowedConfigParams(config) {
-        var newConfig = JSON.parse(JSON.stringify(config));
+        var newConfig = {};
+        Object.assign(newConfig, config);
         // These are not either allowed to update or we don't have enough permission.
-        delete(newConfig.FunctionArn);
-        delete(newConfig.Role);
-        delete(newConfig.CodeSize);
-        delete(newConfig.LastModified);
-        delete(newConfig.CodeSha256);
-        delete(newConfig.Version);
+        NOUPDATE_CONFIG_PARAMS.forEach(p => delete newConfig[p]);
         if (newConfig.VpcConfig)
-            delete(newConfig.VpcConfig.VpcId);
-        delete(newConfig.MasterArn);
+            delete newConfig.VpcConfig.VpcId;
+        
         return newConfig;
     }
     

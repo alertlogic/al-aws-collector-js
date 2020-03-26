@@ -4,6 +4,7 @@
  *
  * Helper class for lambda function utility and helper methods.
  *
+ * Last message ID: AWSC0102
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -23,12 +24,12 @@ var selfUpdate = function (callback) {
       S3Key: process.env.aws_lambda_zipfile_name
     };
     var lambda = new AWS.Lambda();
-    console.info('Performing lambda self-update with params: ', JSON.stringify(params));
+    console.info('AWSC0100 Performing lambda self-update with params: ', JSON.stringify(params));
     lambda.updateFunctionCode(params, function(err, data) {
         if (err) {
-            console.info('Lambda self-update error: ', err);
+            console.info('AWSC0101 Lambda self-update error: ', err);
         } else {
-            console.info('Lambda self-update successful.  Data: ' + data);
+            console.info('AWSC0102 Lambda self-update successful.  Data: ' + JSON.stringify(data));
         }
         return callback(err);
     });

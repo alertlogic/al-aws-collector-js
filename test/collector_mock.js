@@ -279,7 +279,7 @@ const LAMBDA_FUNCTION_CONFIGURATION = {
         } 
     },
     TracingConfig: { Mode: 'PassThrough' },
-    RevisionId: '255d5791-94fb-4190-8626-846615597187' 
+    RevisionId: '255d5791-94fb-4190-8626-846615597187'
 };
 
 const LAMBDA_FUNCTION_CONFIGURATION_CHANGED = {
@@ -309,9 +309,44 @@ const LAMBDA_FUNCTION_CONFIGURATION_CHANGED = {
         } 
     },
     TracingConfig: { Mode: 'PassThrough' },
-    RevisionId: '255d5791-94fb-4190-8626-846615597187' 
+    RevisionId: '255d5791-94fb-4190-8626-846615597187'
 };
 
+const LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE = {
+        FunctionName: FUNCTION_NAME,
+        FunctionArn: FUNCTION_ARN,
+        Runtime: 'nodejs10.x',
+        Role: 'arn:aws:iam::352283894008:role/tdosoudil-vpc-lambda',
+        Handler: 'index.handler',
+        CodeSize: 834,
+        Description: '',
+        Timeout: 5,
+        MemorySize: 128,
+        LastModified: '2018-06-15T07:44:59.223+0000',
+        CodeSha256: 'o/eUfWe7Vax8Etqx/CCLgwhuyVHKHlqeU5Ur2UnY7kU=',
+        Version: '$LATEST',
+        VpcConfig: { SubnetIds: [], SecurityGroupIds: [], VpcId: '' },
+        Environment: { 
+            Variables: { 
+                aims_access_key_id: AIMS_TEST_CREDS.access_key_id,
+                aims_secret_key: AIMS_TEST_CREDS.secret_key,
+                al_api: 'new al_api value',
+                aws_lambda_s3_bucket: S3_BUCKET,
+                aws_lambda_zipfile_name: S3_ZIPFILE,
+                azcollect_api: process.env.azcollect_api,
+                ingest_api: process.env.ingest_api,
+                x: 'XXXX'
+            } 
+        },
+        TracingConfig: { Mode: 'PassThrough' },
+        RevisionId: '255d5791-94fb-4190-8626-846615597187',
+        State: 'State',
+        StateReason: 'StateReason',
+        StateReasonCode: 'StateReasonCode',
+        LastUpdateStatus: 'LastUpdateStatus',
+        LastUpdateStatusReason: 'LastUpdateStatusReason',
+        LastUpdateStatusReasonCode: 'LastUpdateStatusReasonCode'
+    };
 
 module.exports = {
     FUNCTION_ARN : FUNCTION_ARN,
@@ -346,5 +381,6 @@ module.exports = {
     S3_CONFIGURATION_FILE_NOCHANGE : S3_CONFIGURATION_FILE_NOCHANGE,
     S3_CONFIGURATION_FILE_CHANGE : S3_CONFIGURATION_FILE_CHANGE,
     LAMBDA_FUNCTION_CONFIGURATION : LAMBDA_FUNCTION_CONFIGURATION,
-    LAMBDA_FUNCTION_CONFIGURATION_CHANGED : LAMBDA_FUNCTION_CONFIGURATION_CHANGED
+    LAMBDA_FUNCTION_CONFIGURATION_CHANGED : LAMBDA_FUNCTION_CONFIGURATION_CHANGED,
+    LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE : LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE
 };

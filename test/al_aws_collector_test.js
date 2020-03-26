@@ -747,23 +747,23 @@ describe('al_aws_collector tests', function() {
         });
         
         it('sunny config update', () => {
-            var updateConfig = collector._filterDisallowedConfigParams(colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED);
+            var updateConfig = collector._filterDisallowedConfigParams(colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE);
     
             mockS3GetObject(colMock.S3_CONFIGURATION_FILE_CHANGE);
             mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
     
-            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {                
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
                 assert(deepEqual(updateConfig, params));
-                callback(null, colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED);
+                callback(null, colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE);
             });
     
             collector.selfConfigUpdate((err, config) => {
                 assert.equal(null, err);
-                assert(deepEqual(colMock.LAMBDA_FUNCTION_CONFIGURATION_CHANGED, config));
-            });            
+                assert(deepEqual(colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE, config));
+            });
         });
     
-        it('no config updates', () => {        
+        it('no config updates', () => {
             mockS3GetObject(colMock.S3_CONFIGURATION_FILE_NOCHANGE);
             mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
         
@@ -792,7 +792,7 @@ describe('al_aws_collector tests', function() {
             });
         
             collector.selfConfigUpdate((err, config) => {
-                assert.equal('AWSC0010 Unable to apply new config values', err);
+                assert.equal('AWSC0010 Unable to apply new config values TypeError: Cannot read property \'b\' of undefined', err);
                 assert.equal(config, undefined);
             });
         });
