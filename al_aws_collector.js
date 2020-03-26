@@ -568,7 +568,7 @@ class AlAwsCollector {
                 console.info('AWSC0006 Lambda self-update config error: ', err);
             } else {
                 if (config !== undefined) {
-                    console.info('AWSC0007 Lambda self-update config successful. Config: ', config);
+                    console.info('AWSC0007 Lambda self-update config successful.');
                 } else {
                     console.info('AWSC0008 Lambda self-update config nothing to update');
                 }
@@ -602,8 +602,9 @@ class AlAwsCollector {
     }
     
     _applyConfigChanges(newValues, config, callback) {
-        var jsonConfig = JSON.stringify(config);
-        var newConfig = JSON.parse(jsonConfig); 
+        var newConfig = {};
+        Object.assign(newConfig, config);
+        
         
         try {
             Object.keys(newValues).forEach(
@@ -615,7 +616,7 @@ class AlAwsCollector {
             return callback(null, newConfig);
         }
         catch(ex) {
-            return callback('AWSC0010 Unable to apply new config values');
+            return callback(`AWSC0010 Unable to apply new config values ${ex}`);
         }
     }
 
@@ -638,9 +639,7 @@ class AlAwsCollector {
         var newConfig = {};
         Object.assign(newConfig, config);
         // These are not either allowed to update or we don't have enough permission.
-        NOUPDATE_CONFIG_PARAMS.forEach(e => {
-            delete newConfig[e];
-        });
+        NOUPDATE_CONFIG_PARAMS.forEach(p => delete newConfig[p]);
         if (newConfig.VpcConfig)
             delete newConfig.VpcConfig.VpcId;
         
