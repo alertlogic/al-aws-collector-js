@@ -27,6 +27,39 @@ var AIMS_DECRYPTED_CREDS = null;
 
 const AL_SERVICES = ['ingest', 'azcollect'];
 
+const NOUPDATE_CONFIG_PARAMS = [
+    'FunctionArn',
+    'Role',
+    'CodeSize',
+    'LastModified',
+    'CodeSha256'
+    'Version',
+    'MasterArn',
+    'RevisionId',
+    'State',
+    'StateReason',
+    'StateReasonCode',
+    'LastUpdateStatus',
+    'LastUpdateStatusReason',
+    'LastUpdateStatusReasonCode',
+    ['VpcConfig', 'VpcId']
+];
+
+_filterDisallowedConfigParams(config) {
+    var newConfig = JSON.parse(JSON.stringify(config));
+    // These are not either allowed to update or we don't have enough permission.
+    delete(newConfig.FunctionArn);
+    delete(newConfig.Role);
+    delete(newConfig.CodeSize);
+    delete(newConfig.LastModified);
+    delete(newConfig.CodeSha256);
+    delete(newConfig.Version);
+    if (newConfig.VpcConfig)
+        delete(newConfig.VpcConfig.VpcId);
+    delete(newConfig.MasterArn);
+    return newConfig;
+}
+
 function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
         return callback(null, AIMS_DECRYPTED_CREDS);
@@ -142,17 +175,23 @@ class AlAwsCollector {
         }
     }
     
-    prepareErrorStatus(errorString, streamName = 'none', collectionType) {
+    prepareErrorStatus(errorString, streamName = 'none', collectionType, errorCode) {
         let cType = collectionType ? collectionType : this._ingestType;
+        let errorData = errorCode ? 
+            [
+                {error: errorString},
+                {code: errorCode}
+            ] :
+            [
+                {error: errorString}
+            ];
         return {
             stream_name: streamName,
             status_type: 'error',
             stream_type: 'status',
             message_type: 'collector_status',
             host_uuid: this._collectorId,
-            data: [
-                {error: errorString}
-            ],
+            data: errorData,
             agent_type: this._collectorType,
             collection_type: cType,
             timestamp: moment().unix()
@@ -536,7 +575,7 @@ class AlAwsCollector {
                     let updateConfig = collector._filterDisallowedConfigParams(newConfig);
                     m_alAws.updateLambdaConfig(updateConfig, asyncCallback);
                 } else {
-                    asyncCallback(null);
+                    asyncCallback();
                 }
             }
         ],
@@ -612,18 +651,12 @@ class AlAwsCollector {
     }
 
     _filterDisallowedConfigParams(config) {
-        var newConfig = JSON.parse(JSON.stringify(config));
+        var newConfig;
+        Object.assign(newConfig, config);
         // These are not either allowed to update or we don't have enough permission.
-        delete(newConfig.FunctionArn);
-        delete(newConfig.Role);
-        delete(newConfig.CodeSize);
-        delete(newConfig.LastModified);
-        delete(newConfig.CodeSha256);
-        delete(newConfig.Version);
+        NOUPDATE_CONFIG_PARAMS.forEach(e =>  newConfig[e] = undefined);
         if (newConfig.VpcConfig)
-            delete(newConfig.VpcConfig.VpcId);
-        delete(newConfig.MasterArn);
-        return newConfig;
+            newConfig.VpcConfig.VpcId = undefined;
     }
     
     _defaultHostmetaElems() {
