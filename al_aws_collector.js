@@ -642,7 +642,7 @@ class AlAwsCollector {
             delete newConfig[e];
         });
         if (newConfig.VpcConfig)
-            delete newConfig.VpcConfig.VpcId ;
+            delete newConfig.VpcConfig.VpcId;
         
         return newConfig;
     }
