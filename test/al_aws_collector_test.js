@@ -149,6 +149,8 @@ var formatFun = function (event, context, callback) {
 
 describe('al_aws_collector tests', function() {
 
+    let processEnv;
+    
     beforeEach(function(){
         AWS.mock('KMS', 'decrypt', function (params, callback) {
             const data = {
@@ -164,12 +166,14 @@ describe('al_aws_collector tests', function() {
 
         setAlServiceStub();
         mockSetEnvStub();
+        processEnv = colMock.mockProcessEnv();
     });
 
     afterEach(function(){
         restoreAlServiceStub();
         setEnvStub.restore();
         responseStub.restore();
+        processEnv();
     });
 
     it('register success with env vars set', function(done) {
@@ -819,26 +823,27 @@ describe('al_aws_collector tests', function() {
                 (callback) => { callback(); });
             fakeSelfConfigUpdate = sinon.stub(AlAwsCollector.prototype, 'selfConfigUpdate').callsFake(
                     (callback) => { callback(); });
+            processEnv = colMock.mockProcessEnv();
         });
         
         afterEach(() => {
             fakeSelfUpdate.restore();
             fakeSelfConfigUpdate.restore();
             process.env.aws_lambda_update_config_name = colMock.S3_CONFIGURATION_FILE_NAME;
+            processEnv();
         });
         
         it('code and config update', (done) => {
             collector.update((err) => {
                 assert.equal(err, undefined);
             });
-            
             sinon.assert.calledOnce(fakeSelfUpdate);
             sinon.assert.calledOnce(fakeSelfConfigUpdate);
             done();
         });
         
         it('code update only', (done) => {
-            delete(process.env.aws_lambda_update_config_name);
+            delete process.env.aws_lambda_update_config_name;
             
             const testEvent = {
                 RequestType: 'ScheduledEvent',
@@ -857,6 +862,7 @@ describe('al_aws_collector tests', function() {
 describe('al_aws_collector tests for setDecryptedCredentials()', function() {
     var rewireGetDecryptedCredentials;
     var collectRewire;
+    let processEnv;
 
     const ACCESS_KEY_ID = 'access_key_id';
     const ENCRYPTED_SECRET_KEY = 'encrypted_secret_key';
@@ -868,8 +874,13 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
         rewireGetDecryptedCredentials = collectRewire.__get__('getDecryptedCredentials');
     });
 
+    beforeEach(function() {
+        processEnv = colMock.mockProcessEnv();
+    });
+    
     afterEach(function() {
         AWS.restore('KMS', 'decrypt');
+        processEnv();
     });
 
     it('if AIMS_DECRYPTED_CREDS are declared already it returns ok', function(done) {
@@ -926,6 +937,8 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
 
 describe('al_aws_collector error tests', function() {
 
+    let processEnv;
+    
     beforeEach(function(){
         AWS.mock('KMS', 'decrypt', function (params, callback) {
             const data = {
@@ -946,6 +959,7 @@ describe('al_aws_collector error tests', function() {
         });
         mockLambdaMetricStatistics();
         mockSetEnvStub();
+        processEnv = colMock.mockProcessEnv();
     });
 
     afterEach(function(){
@@ -954,6 +968,7 @@ describe('al_aws_collector error tests', function() {
         setEnvStub.restore();
         AWS.restore('CloudFormation', 'describeStacks');
         AWS.restore('CloudWatch', 'getMetricStatistics');
+        processEnv();
     });
 
     it('register error', function(done) {

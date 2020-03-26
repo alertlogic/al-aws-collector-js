@@ -1,9 +1,35 @@
+const mockedEnv = require('mocked-env');
+let restoreEnv;
+
 const FUNCTION_NAME = 'test-VpcFlowCollectLambdaFunction';
 const S3_BUCKET = 'rcs-test-us-east-1';
 const S3_ZIPFILE = 'collector.zip';
 const S3_CONFIGURATION_BUCKET = S3_BUCKET;
 const S3_CONFIGURATION_FILE_NAME = 'configs/lambda/al-cwl-collector.json';
 const STACK_NAME = 'test-stack-01';
+
+var mockProcessEnv = function() {
+    return mockedEnv({
+        AWS_REGION: 'us-east-1',
+        AWS_LAMBDA_FUNCTION_NAME: FUNCTION_NAME,
+        al_api: 'api.global-services.global.alertlogic.com',
+        ingest_api: 'ingest.global-services.global.alertlogic.com',
+        azcollect_api: 'azcollect.global-services.global.alertlogic.com',
+        aims_access_key_id: 'aims-key-id',
+        aims_secret_key: 'aims-secret-key-encrypted',
+        aws_lambda_s3_bucket: S3_BUCKET,
+        stack_name: STACK_NAME,
+        aws_lambda_zipfile_name: S3_ZIPFILE,
+        aws_lambda_update_config_name: S3_CONFIGURATION_FILE_NAME,
+        collector_id: 'collector-id'
+    });
+};
+
+var restoreProcessEnv = function() {
+    restoreEnv();
+    restoreEnv = undefined;
+};
+
 process.env.AWS_REGION = 'us-east-1';
 process.env.AWS_LAMBDA_FUNCTION_NAME = FUNCTION_NAME;
 process.env.al_api = 'api.global-services.global.alertlogic.com';
@@ -349,6 +375,8 @@ const LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE = {
     };
 
 module.exports = {
+    mockProcessEnv : mockProcessEnv,
+    restoreProcessEnv : restoreProcessEnv,
     FUNCTION_ARN : FUNCTION_ARN,
     FUNCTION_NAME : FUNCTION_NAME,
     S3_BUCKET : S3_BUCKET,

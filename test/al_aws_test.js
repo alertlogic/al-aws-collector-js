@@ -7,6 +7,7 @@ var AWS = require('aws-sdk-mock');
 const alAwsRewire = rewire('../al_aws');
 
 describe('al_aws Tests', function() {
+    
     describe('arnToName() tests', function() {
         it('Valid input', function(done) {
             assert.equal(m_alAws.arnToName('arn:aws:iam::123456789101:role/testRole'), 'testRole');
@@ -46,11 +47,17 @@ describe('al_aws Tests', function() {
         var jsonCfg = "{\"key\":\"value\"}";
         var s3Object = {Body: new Buffer(jsonCfg)};
     
-        afterEach(() => {
-            AWS.restore('S3', 'getObject');
-            process.env.aws_lambda_update_config_name = colMock.S3_CONFIGURATION_FILE_NAME;
+        let processEnv;
+        
+        beforeEach(() => {
+            processEnv = colMock.mockProcessEnv();
         });
-    
+        
+        afterEach(() => {
+            processEnv();
+            AWS.restore('S3', 'getObject');
+        });
+
         it('sunny case with predefined name', () => {
             AWS.mock('S3', 'getObject', (params, callback) => {
                 assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
@@ -63,7 +70,7 @@ describe('al_aws Tests', function() {
             });
         });
     
-        it('error', () => {
+        it('error case', () => {
             AWS.mock('S3', 'getObject', (params, callback) => {
                 assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
                 assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
@@ -76,20 +83,23 @@ describe('al_aws Tests', function() {
         });
     });
     
-    describe('getLambdaConfig() function', () => {
+    describe('getLambdaConfig() function', function() {
         var rewireGetLambdaConfig = alAwsRewire.__get__('getLambdaConfig');
-        after(() => {
-            AWS.restore('Lambda', 'getFunctionConfiguration');
-        });
-    
-        it('check function anme', () => {
+        
+        beforeEach(function() {
             AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
-                return callback(null, "ok");
+                return callback(null, 'ok');
             });
-    
+        });
+        
+        afterEach(function() {
+            AWS.restore('Lambda', 'getFunctionConfiguration');
+        });
+
+        it('check function name', function() {
             rewireGetLambdaConfig((err, config) => {
-                assert.equal("ok", config);
+                assert.equal('ok', config);
             });
         });
     });
