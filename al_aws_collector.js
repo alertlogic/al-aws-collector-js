@@ -32,7 +32,7 @@ const NOUPDATE_CONFIG_PARAMS = [
     'Role',
     'CodeSize',
     'LastModified',
-    'CodeSha256'
+    'CodeSha256',
     'Version',
     'MasterArn',
     'RevisionId',
@@ -41,24 +41,8 @@ const NOUPDATE_CONFIG_PARAMS = [
     'StateReasonCode',
     'LastUpdateStatus',
     'LastUpdateStatusReason',
-    'LastUpdateStatusReasonCode',
-    ['VpcConfig', 'VpcId']
+    'LastUpdateStatusReasonCode'
 ];
-
-_filterDisallowedConfigParams(config) {
-    var newConfig = JSON.parse(JSON.stringify(config));
-    // These are not either allowed to update or we don't have enough permission.
-    delete(newConfig.FunctionArn);
-    delete(newConfig.Role);
-    delete(newConfig.CodeSize);
-    delete(newConfig.LastModified);
-    delete(newConfig.CodeSha256);
-    delete(newConfig.Version);
-    if (newConfig.VpcConfig)
-        delete(newConfig.VpcConfig.VpcId);
-    delete(newConfig.MasterArn);
-    return newConfig;
-}
 
 function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
@@ -651,12 +635,17 @@ class AlAwsCollector {
     }
 
     _filterDisallowedConfigParams(config) {
-        var newConfig;
+        var newConfig = {};
         Object.assign(newConfig, config);
         // These are not either allowed to update or we don't have enough permission.
-        NOUPDATE_CONFIG_PARAMS.forEach(e =>  newConfig[e] = undefined);
+        NOUPDATE_CONFIG_PARAMS.forEach(e => {
+            console.log('!!!!Deleteing ', e);
+            delete newConfig[e];
+        });
         if (newConfig.VpcConfig)
-            newConfig.VpcConfig.VpcId = undefined;
+            delete newConfig.VpcConfig.VpcId ;
+        
+        return newConfig;
     }
     
     _defaultHostmetaElems() {
