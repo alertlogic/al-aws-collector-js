@@ -639,7 +639,6 @@ class AlAwsCollector {
         Object.assign(newConfig, config);
         // These are not either allowed to update or we don't have enough permission.
         NOUPDATE_CONFIG_PARAMS.forEach(e => {
-            console.log('!!!!Deleteing ', e);
             delete newConfig[e];
         });
         if (newConfig.VpcConfig)

@@ -309,7 +309,8 @@ const LAMBDA_FUNCTION_CONFIGURATION_CHANGED = {
         } 
     },
     TracingConfig: { Mode: 'PassThrough' },
-    RevisionId: '255d5791-94fb-4190-8626-846615597187' 
+    RevisionId: '255d5791-94fb-4190-8626-846615597187',
+    Status: 'Status'
 };
 
 
