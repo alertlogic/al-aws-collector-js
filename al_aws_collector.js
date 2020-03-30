@@ -151,7 +151,7 @@ class AlAwsCollector {
                         util.inspect(error);
             }
             const status = this.prepareErrorStatus(errorString);
-            this.sendStatus(status, (err) => {
+            this.sendStatus(status, () => {
                 context.fail(errorString);
             });
         } else {

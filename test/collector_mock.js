@@ -1,5 +1,4 @@
 const mockedEnv = require('mocked-env');
-let restoreEnv;
 
 const FUNCTION_NAME = 'test-VpcFlowCollectLambdaFunction';
 const S3_BUCKET = 'rcs-test-us-east-1';
@@ -23,11 +22,6 @@ var mockProcessEnv = function() {
         aws_lambda_update_config_name: S3_CONFIGURATION_FILE_NAME,
         collector_id: 'collector-id'
     });
-};
-
-var restoreProcessEnv = function() {
-    restoreEnv();
-    restoreEnv = undefined;
 };
 
 process.env.AWS_REGION = 'us-east-1';
@@ -376,7 +370,6 @@ const LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE = {
 
 module.exports = {
     mockProcessEnv : mockProcessEnv,
-    restoreProcessEnv : restoreProcessEnv,
     FUNCTION_ARN : FUNCTION_ARN,
     FUNCTION_NAME : FUNCTION_NAME,
     S3_BUCKET : S3_BUCKET,
