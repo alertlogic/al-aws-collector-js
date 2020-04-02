@@ -601,9 +601,9 @@ class AlAwsCollector {
                     return context.fail('AWSC0009 Unknown scheduled event detail type: ' + event.Type);
             }
         case 'Create':
-            return collector.register(event, {});
+            return collector.registerSync(event, {});
         case 'Delete':
-            return collector.deregister(event, {});
+            return collector.deregisterSync(event, {});
         default:
             return context.fail('AWSC0012 Unknown event:' + event);
         }
