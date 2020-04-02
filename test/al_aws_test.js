@@ -1,10 +1,8 @@
 const assert = require('assert');
-const rewire = require('rewire');
 const m_alAws = require('../al_aws');
 const colMock = require('./collector_mock');
 var AWS = require('aws-sdk-mock');
 
-const alAwsRewire = rewire('../al_aws');
 
 describe('al_aws Tests', function() {
     describe('arnToName() tests', function() {
@@ -42,53 +40,58 @@ describe('al_aws Tests', function() {
     });
     
     describe('getS3ConfigChanges() function', () => {
-        var rewireGetS3ConfigChanges = alAwsRewire.__get__('getS3ConfigChanges');
         var jsonCfg = "{\"key\":\"value\"}";
         var s3Object = {Body: new Buffer(jsonCfg)};
     
+        beforeEach(() => {
+            colMock.initProcessEnv();
+        });
         afterEach(() => {
             AWS.restore('S3', 'getObject');
-            process.env.aws_lambda_update_config_name = colMock.S3_CONFIGURATION_FILE_NAME;
         });
     
         it('sunny case with predefined name', () => {
-            AWS.mock('S3', 'getObject', (params, callback) => {
+            AWS.mock('S3', 'getObject', function(params, callback) {
                 assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
                 assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
                 return callback(null, s3Object);
             });
     
-            rewireGetS3ConfigChanges((err, config) => {
+            m_alAws.getS3ConfigChanges((err, config) => {
                 assert.equal(jsonCfg, JSON.stringify(config));
             });
         });
     
         it('error', () => {
-            AWS.mock('S3', 'getObject', (params, callback) => {
+            AWS.mock('S3', 'getObject', function (params, callback) {
                 assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
                 assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
                 return callback("key not found error");
             });
     
-            rewireGetS3ConfigChanges((err, config) => {
+            m_alAws.getS3ConfigChanges(function(err, config) {
                 assert.equal("key not found error", err);
             });
         });
     });
     
     describe('getLambdaConfig() function', () => {
-        var rewireGetLambdaConfig = alAwsRewire.__get__('getLambdaConfig');
-        after(() => {
+    
+        beforeEach(() => {
+            colMock.initProcessEnv();
+        });
+        
+        afterEach(() => {
             AWS.restore('Lambda', 'getFunctionConfiguration');
         });
-    
-        it('check function anme', () => {
+        
+        it('check function name', () => {
             AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 return callback(null, "ok");
             });
     
-            rewireGetLambdaConfig((err, config) => {
+            m_alAws.getLambdaConfig((err, config) => {
                 assert.equal("ok", config);
             });
         });

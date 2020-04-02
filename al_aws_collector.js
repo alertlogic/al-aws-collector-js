@@ -219,8 +219,17 @@ class AlAwsCollector {
         );
     }
     
-    register(event, custom) {
-        const context = this._invokeContext;
+    registerSync(event, custom) {
+        this.register(event, custom, (err) => {
+            if(err){
+                return response.send(event, this.context, response.FAILED, {Error: err});
+            } else {
+                return response.send(event, this.context, response.SUCCESS);
+            }
+        });
+    }
+    
+    register(event, custom, callback) {
         let regValues = Object.assign(this.getProperties(), custom);
         regValues.stackName = event.ResourceProperties.StackName;
 
@@ -267,13 +276,7 @@ class AlAwsCollector {
                     });
             }
         ],
-        (err)=> {
-            if(err){
-                return response.send(event, context, response.FAILED, {Error: err});
-            } else {
-                return response.send(event, context, response.SUCCESS);
-            }
-        });
+        callback);
     }
 
     handleCheckin() {
@@ -373,20 +376,25 @@ class AlAwsCollector {
         );
     }
 
-    
-    deregister(event, custom){
+    deregisterSync(event, custom) {
+        this.deregister(event, custom, () => {
+            // Respond with SUCCESS in order to delete CF stack with no issues.
+            return response.send(event, this.context, response.SUCCESS);
+        });
+    }
+
+    deregister(event, custom, callback) {
         const context = this._invokeContext;
         let regValues = Object.assign(this.getProperties(), custom);
         regValues.stackName = event.ResourceProperties.StackName;
 
         this._azcollectc.deregister(regValues)
             .then(resp => {
-                return response.send(event, context, response.SUCCESS);
+                return callback(null, resp);
             })
             .catch(exception => {
                 console.warn('AWSC0011 Collector deregistration failed. ', exception);
-                // Respond with SUCCESS in order to delete CF stack with no issues.
-                return response.send(event, context, response.SUCCESS);
+                return callback(exception);
             });
     }
 

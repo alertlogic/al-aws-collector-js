@@ -4,18 +4,24 @@ const S3_ZIPFILE = 'collector.zip';
 const S3_CONFIGURATION_BUCKET = S3_BUCKET;
 const S3_CONFIGURATION_FILE_NAME = 'configs/lambda/al-cwl-collector.json';
 const STACK_NAME = 'test-stack-01';
-process.env.AWS_REGION = 'us-east-1';
-process.env.AWS_LAMBDA_FUNCTION_NAME = FUNCTION_NAME;
-process.env.al_api = 'api.global-services.global.alertlogic.com';
-process.env.ingest_api = 'ingest.global-services.global.alertlogic.com';
-process.env.azcollect_api = 'azcollect.global-services.global.alertlogic.com';
-process.env.aims_access_key_id = 'aims-key-id';
-process.env.aims_secret_key = 'aims-secret-key-encrypted';
-process.env.aws_lambda_s3_bucket = S3_BUCKET;
-process.env.stack_name = STACK_NAME;
-process.env.aws_lambda_zipfile_name = S3_ZIPFILE;
-process.env.aws_lambda_update_config_name = S3_CONFIGURATION_FILE_NAME;
-process.env.collector_id = 'collector-id';
+const AL_API = 'api.global-services.global.alertlogic.com';
+const INGEST_API = 'ingest.global-services.global.alertlogic.com';
+const AZCOLLECT_API = 'azcollect.global-services.global.alertlogic.com';
+
+var initProcessEnv = function() {
+    process.env.AWS_REGION = 'us-east-1';
+    process.env.AWS_LAMBDA_FUNCTION_NAME = FUNCTION_NAME;
+    process.env.al_api = AL_API;
+    process.env.ingest_api = INGEST_API;
+    process.env.azcollect_api = AZCOLLECT_API;
+    process.env.aims_access_key_id = 'aims-key-id';
+    process.env.aims_secret_key = 'aims-secret-key-encrypted';
+    process.env.aws_lambda_s3_bucket = S3_BUCKET;
+    process.env.stack_name = STACK_NAME;
+    process.env.aws_lambda_zipfile_name = S3_ZIPFILE;
+    process.env.aws_lambda_update_config_name = S3_CONFIGURATION_FILE_NAME;
+    process.env.collector_id = 'collector-id';
+};
 
 
 const AIMS_TEST_CREDS = {
@@ -271,11 +277,11 @@ const LAMBDA_FUNCTION_CONFIGURATION = {
         Variables: { 
             aims_access_key_id: AIMS_TEST_CREDS.access_key_id,
             aims_secret_key: AIMS_TEST_CREDS.secret_key,
-            al_api: process.env.al_api,
+            al_api: AL_API,
             aws_lambda_s3_bucket: S3_BUCKET,
             aws_lambda_zipfile_name: S3_ZIPFILE,
-            azcollect_api: process.env.azcollect_api,
-            ingest_api: process.env.ingest_api 
+            azcollect_api: AZCOLLECT_API,
+            ingest_api: INGEST_API
         } 
     },
     TracingConfig: { Mode: 'PassThrough' },
@@ -303,8 +309,8 @@ const LAMBDA_FUNCTION_CONFIGURATION_CHANGED = {
             al_api: 'new al_api value',
             aws_lambda_s3_bucket: S3_BUCKET,
             aws_lambda_zipfile_name: S3_ZIPFILE,
-            azcollect_api: process.env.azcollect_api,
-            ingest_api: process.env.ingest_api,
+            azcollect_api: AZCOLLECT_API,
+            ingest_api: INGEST_API,
             x: 'XXXX'
         } 
     },
@@ -333,8 +339,8 @@ const LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE = {
                 al_api: 'new al_api value',
                 aws_lambda_s3_bucket: S3_BUCKET,
                 aws_lambda_zipfile_name: S3_ZIPFILE,
-                azcollect_api: process.env.azcollect_api,
-                ingest_api: process.env.ingest_api,
+                azcollect_api: AZCOLLECT_API,
+                ingest_api: INGEST_API,
                 x: 'XXXX'
             } 
         },
@@ -349,6 +355,7 @@ const LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE = {
     };
 
 module.exports = {
+    initProcessEnv : initProcessEnv,
     FUNCTION_ARN : FUNCTION_ARN,
     FUNCTION_NAME : FUNCTION_NAME,
     S3_BUCKET : S3_BUCKET,

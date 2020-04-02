@@ -150,6 +150,7 @@ var formatFun = function (event, context, callback) {
 describe('al_aws_collector tests', function() {
 
     beforeEach(function(){
+        colMock.initProcessEnv();
         AWS.mock('KMS', 'decrypt', function (params, callback) {
             const data = {
                     Plaintext : 'decrypted-aims-sercret-key'
@@ -185,7 +186,7 @@ describe('al_aws_collector tests', function() {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
-            collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+            collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
         });
     });
 
@@ -204,7 +205,7 @@ describe('al_aws_collector tests', function() {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
-            collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+            collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
         });
     });
 
@@ -367,7 +368,7 @@ describe('al_aws_collector tests', function() {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             deregisterContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
-            collector.deregister(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
+            collector.deregisterSync(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
         });
     });
 
@@ -693,6 +694,7 @@ describe('al_aws_collector tests', function() {
         };
 
         beforeEach(() => {
+            colMock.initProcessEnv();
             collector = new AlAwsCollector(applyConfigChangesContext, 'cwe', 
                 AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', colMock.AIMS_TEST_CREDS);
             object = JSON.parse(JSON.stringify(colMock.LAMBDA_FUNCTION_CONFIGURATION));
@@ -868,6 +870,10 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
         rewireGetDecryptedCredentials = collectRewire.__get__('getDecryptedCredentials');
     });
 
+    beforeEach(function() {
+        colMock.initProcessEnv();
+    });
+    
     afterEach(function() {
         AWS.restore('KMS', 'decrypt');
     });
@@ -885,12 +891,9 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
 
     it('if AIMS_DECRYPTED_CREDS are not declared KMS decryption is called', function(done) {
         collectRewire.__set__('AIMS_DECRYPTED_CREDS', undefined);
-        collectRewire.__set__('process', {
-            env : {
-                aims_access_key_id : ACCESS_KEY_ID,
-                aims_secret_key: ENCRYPTED_SECRET_KEY_BASE64
-            }
-        });
+        process.env.aims_access_key_id = ACCESS_KEY_ID;
+        process.env.aims_secret_key = ENCRYPTED_SECRET_KEY_BASE64;
+
         AWS.mock('KMS', 'decrypt', function (data, callback) {
             assert.equal(data.CiphertextBlob, ENCRYPTED_SECRET_KEY);
             return callback(null, {Plaintext : DECRYPTED_SECRET_KEY});
@@ -907,12 +910,9 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
 
     it('if some error during decryption, function fails', function(done) {
         collectRewire.__set__('AIMS_DECRYPTED_CREDS', undefined);
-        collectRewire.__set__('process', {
-            env : {
-                aims_access_key_id : ACCESS_KEY_ID,
-                aims_secret_key: new Buffer('wrong_key').toString('base64')
-            }
-        });
+        process.env.aims_access_key_id = ACCESS_KEY_ID;
+        process.env.aims_secret_key = new Buffer('wrong_key').toString('base64');
+        
         AWS.mock('KMS', 'decrypt', function (data, callback) {
             assert.equal(data.CiphertextBlob, 'wrong_key');
             return callback('error', 'stack');
@@ -927,6 +927,7 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
 describe('al_aws_collector error tests', function() {
 
     beforeEach(function(){
+        colMock.initProcessEnv();
         AWS.mock('KMS', 'decrypt', function (params, callback) {
             const data = {
                     Plaintext : 'decrypted-aims-sercret-key'
@@ -968,7 +969,7 @@ describe('al_aws_collector error tests', function() {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             registerContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
-            collector.register(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+            collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
         });
     });
 
@@ -984,7 +985,7 @@ describe('al_aws_collector error tests', function() {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             deregisterContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
-            collector.deregister(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
+            collector.deregisterSync(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
         });
     });
 
