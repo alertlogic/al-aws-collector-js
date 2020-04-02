@@ -4,7 +4,7 @@
  *
  * Helper class for lambda function utility and helper methods.
  *
- * Last message ID: AWSC0102
+ * Last message ID: AWSC0104
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -50,7 +50,7 @@ var getS3ConfigChanges = function(callback) {
                 let config = JSON.parse(object.Body.toString());
                 return callback(null, config);
             } catch(ex) {
-                return callback('Unable to parse config changes.')
+                return callback('AWSC0103 Unable to parse config changes.')
             }
         }
     });
@@ -158,7 +158,7 @@ var setEnv = function(vars, callback) {
 
     lambda.getFunctionConfiguration(getConfigParams, (err, config) => {
         if(err){
-            console.error('Error getting function config, environment variables were not updated', err);
+            console.error('AWSC0104 Error getting function config, environment variables were not updated', err);
             return callback(err);
         }
         var params = {
