@@ -125,6 +125,7 @@ class AlAwsCollector {
         this._customHealthChecks = healthCheckFuns;
         this._customStatsFuns = statsFuns;
         this._collectorId = process.env.collector_id;
+        this._stackName = process.env.stack_name;
     }
     
     set context (context) {
@@ -132,6 +133,12 @@ class AlAwsCollector {
     }
     get context () {
         return this._invokeContext;
+    }
+    
+    get registered () {
+        return this._collectorId != undefined && 
+            this._collectorId != '' &&
+            this._collectorId != 'none';
     }
     
     done(error) {
@@ -189,7 +196,8 @@ class AlAwsCollector {
             functionName : this._name,
             version : this._version,
             dataType : this._ingestType,
-            collectorId : this._collectorId
+            collectorId : this._collectorId,
+            stackName : this._stackName
         };
     }
     
@@ -231,7 +239,8 @@ class AlAwsCollector {
     
     register(event, custom, callback) {
         let regValues = Object.assign(this.getProperties(), custom);
-        regValues.stackName = event.ResourceProperties.StackName;
+        regValues.stackName = event && event.ResourceProperties ? 
+                event.ResourceProperties.StackName : regValues.stackName;
 
         async.waterfall([
             (asyncCallback) => {
@@ -281,7 +290,20 @@ class AlAwsCollector {
 
     handleCheckin() {
         var collector = this;
-        collector.checkin(function(err) {
+        async.waterfall([
+            function(asyncCallback) {
+                if (!collector.registered) {
+                    collector.register(undefined, undefined, (err) => {
+                        return asyncCallback(err);
+                    });
+                } else {
+                    return asyncCallback();
+                }
+            },
+            function(asyncCallback) {
+                return collector.checkin(asyncCallback);
+            }
+        ], function(err) {
             return collector.done(err);
         });
     }
@@ -326,10 +348,11 @@ class AlAwsCollector {
     }
     
     getHealthStatus(context, customChecks, callback) {
-        const appliedHealthChecks = customChecks.map(check => check.bind(this));  
+        let collector = this;
+        const appliedHealthChecks = customChecks.map(check => check.bind(this));
         async.parallel([
             function(asyncCallback) {
-                m_healthChecks.checkCloudFormationStatus(process.env.stack_name, asyncCallback);
+                m_healthChecks.checkCloudFormationStatus(collector._stackName, asyncCallback);
             }
         ].concat(appliedHealthChecks),
         function(errMsg) {
@@ -386,7 +409,8 @@ class AlAwsCollector {
     deregister(event, custom, callback) {
         const context = this._invokeContext;
         let regValues = Object.assign(this.getProperties(), custom);
-        regValues.stackName = event.ResourceProperties.StackName;
+        regValues.stackName = event && event.ResourceProperties ? 
+                event.ResourceProperties.StackName : regValues.stackName;
 
         this._azcollectc.deregister(regValues)
             .then(resp => {
@@ -401,7 +425,7 @@ class AlAwsCollector {
     sendStatus(status, callback) {
         let collector = this;
         
-        if(!status){
+        if(!status || !collector.registered){
             return callback(null);
         } else {
             zlib.deflate(JSON.stringify([status]), (compressionErr, compressed) => {
