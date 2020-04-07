@@ -122,6 +122,7 @@ const CHECKIN_AZCOLLECT_QUERY = {
         details: [],
         functionName: 'test-VpcFlowCollectLambdaFunction',
         region: 'us-east-1',
+        stackName: 'test-stack-01',
         version: '1.0.0',
         status: 'ok',
         statistics:[
@@ -138,6 +139,7 @@ const CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR = {
         dataType: 'secmsgs',
         functionName: 'test-VpcFlowCollectLambdaFunction',
         region: 'us-east-1',
+        stackName: 'test-stack-01',
         version: '1.0.0',
         status: 'error',
         error_code: 'MYCODE',
@@ -181,6 +183,7 @@ const CHECKIN_ERROR_AZCOLLECT_QUERY = {
         dataType: 'secmsgs',
         functionName: 'test-VpcFlowCollectLambdaFunction',
         region: 'us-east-1',
+        stackName: 'test-stack-01',
         version: '1.0.0',
         status: 'error',
         error_code: 'ALAWS00002',
