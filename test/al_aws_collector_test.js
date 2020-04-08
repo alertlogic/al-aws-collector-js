@@ -222,6 +222,7 @@ describe('al_aws_collector tests', function() {
                 return callback(null, colMock.CF_DESCRIBE_STACKS_RESPONSE);
             });
             mockLambdaMetricStatistics();
+            colMock.initProcessEnv();
         });
 
         after(function() {
@@ -229,7 +230,7 @@ describe('al_aws_collector tests', function() {
             AWS.restore('CloudWatch', 'getMetricStatistics');
         });
 
-        it('checkin success', function(done) {
+        it('checkin success registered', function(done) {
             var mockCtx = {
                 invokedFunctionArn : colMock.FUNCTION_ARN,
                 functionName : colMock.FUNCTION_NAME,
@@ -241,6 +242,7 @@ describe('al_aws_collector tests', function() {
                     done();
                 }
             };
+            
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
                         mockCtx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
