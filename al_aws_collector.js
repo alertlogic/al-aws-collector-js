@@ -119,7 +119,7 @@ class AlAwsCollector {
         this._alAzcollectEndpoint = process.env.azollect_api;
         this._aimsc = new m_alCollector.AimsC(process.env.al_api, aimsCreds, null, null, process.env.customer_id);
         this._endpointsc = new m_alCollector.EndpointsC(process.env.al_api, this._aimsc);
-        this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, collectorType);
+        this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, 'aws', collectorType);
         this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
         this._formatFun = formatFun;
         this._customHealthChecks = healthCheckFuns;
@@ -264,7 +264,7 @@ class AlAwsCollector {
                             } = newConfig;
 
                             Object.assign(process.env, Variables);
-                            this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, this._collectorType);
+                            this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, 'aws', this._collectorType);
                             this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
                         }
 
