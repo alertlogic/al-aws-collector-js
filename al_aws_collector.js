@@ -142,6 +142,10 @@ class AlAwsCollector {
             this._collectorId != 'none';
     }
     
+    get application_id () {
+        return this._applicationId;
+    };
+    
     done(error) {
         let context = this._invokeContext;
         if (error) {
