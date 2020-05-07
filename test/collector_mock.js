@@ -21,6 +21,7 @@ var initProcessEnv = function() {
     process.env.aws_lambda_zipfile_name = S3_ZIPFILE;
     process.env.aws_lambda_update_config_name = S3_CONFIGURATION_FILE_NAME;
     process.env.collector_id = 'collector-id';
+    process.env.al_application_id = 'app-id';
 };
 
 
@@ -85,7 +86,8 @@ const REG_AZCOLLECT_QUERY = {
         functionName: 'test-VpcFlowCollectLambdaFunction',
         region: 'us-east-1',
         stackName: STACK_NAME,
-        version: '1.0.0'
+        version: '1.0.0',
+        applicationId: 'app-id'
     }
 };
 
@@ -118,6 +120,7 @@ const CHECKIN_AZCOLLECT_QUERY = {
     body: {
         awsAccountId: '123456789012',
         collectorId: 'collector-id',
+        applicationId: 'app-id',
         dataType: 'secmsgs',
         details: [],
         functionName: 'test-VpcFlowCollectLambdaFunction',
@@ -136,6 +139,7 @@ const CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR = {
     body: {
         awsAccountId: '123456789012',
         collectorId: 'collector-id',
+        applicationId: 'app-id',
         dataType: 'secmsgs',
         functionName: 'test-VpcFlowCollectLambdaFunction',
         region: 'us-east-1',
@@ -180,6 +184,7 @@ const CHECKIN_ERROR_AZCOLLECT_QUERY = {
     body: {
         awsAccountId: '123456789012',
         collectorId: 'collector-id',
+        applicationId: 'app-id',
         dataType: 'secmsgs',
         functionName: 'test-VpcFlowCollectLambdaFunction',
         region: 'us-east-1',

@@ -126,6 +126,7 @@ class AlAwsCollector {
         this._customStatsFuns = statsFuns;
         this._collectorId = process.env.collector_id;
         this._stackName = process.env.stack_name;
+        this._applicationId = process.env.al_application_id;
     }
     
     set context (context) {
@@ -197,7 +198,8 @@ class AlAwsCollector {
             version : this._version,
             dataType : this._ingestType,
             collectorId : this._collectorId,
-            stackName : this._stackName
+            stackName : this._stackName,
+            applicationId : this._applicationId
         };
     }
     
