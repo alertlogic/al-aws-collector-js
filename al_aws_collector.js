@@ -107,7 +107,7 @@ class AlAwsCollector {
             formatFun, healthCheckFuns, statsFuns) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
-        this._awsAccountId = m_alAws.arnToAccId(this._arn);
+        this._awsAccountId = m_alAws.arnToAccId(context.invokedFunctionArn);
         this._collectorType = collectorType;
         this._ingestType = ingestType;
         this._version = version;
@@ -146,6 +146,10 @@ class AlAwsCollector {
     get application_id () {
         return this._applicationId;
     };
+
+    get awsAccountId () {
+        return this._awsAccountId;
+    }
     
     done(error) {
         let context = this._invokeContext;
