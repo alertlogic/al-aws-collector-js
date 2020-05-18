@@ -147,7 +147,7 @@ class AlAwsCollector {
         return this._applicationId;
     };
 
-    get awsAccountId () {
+    get aws_account_id () {
         return this._awsAccountId;
     }
     
