@@ -107,6 +107,7 @@ class AlAwsCollector {
             formatFun, healthCheckFuns, statsFuns) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
+        this._awsAccountId = m_alAws.arnToAccId(this._arn);
         this._collectorType = collectorType;
         this._ingestType = ingestType;
         this._version = version;
@@ -196,7 +197,7 @@ class AlAwsCollector {
     
     getProperties() {
         return {
-            awsAccountId : m_alAws.arnToAccId(this._arn),
+            awsAccountId : this._awsAccountId,
             region : this._region,
             functionName : this._name,
             version : this._version,

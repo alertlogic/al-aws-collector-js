@@ -622,6 +622,7 @@ describe('al_aws_collector tests', function() {
         it('calls success when there is no error', () => {
 
             const testContext = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
                 succeed: () => true,
                 fail: () => false
             };
@@ -643,6 +644,7 @@ describe('al_aws_collector tests', function() {
                 foo: "bar"
             };
             const testContext = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
                 succeed: () => true,
                 fail: (error) => {
                     assert.equal(error, JSON.stringify(stringifialbleError));
@@ -666,6 +668,7 @@ describe('al_aws_collector tests', function() {
             const circRefError = {};
             circRefError.foo = circRefError;
             const testContext = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
                 succeed: () => true,
                 fail: (error) => {
                     assert.notEqual(error, circRefError);
