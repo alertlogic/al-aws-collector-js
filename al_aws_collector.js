@@ -4,7 +4,7 @@
  *
  * Base class for AWS Lambda based collectors.
  *
- * Last message ID: AWSC0013
+ * Last message ID: AWSC0016
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -302,7 +302,38 @@ class AlAwsCollector {
     handleCheckin() {
         var collector = this;
         async.waterfall([
-            function(asyncCallback) {
+            function (asyncCallback) {
+                const {
+                    azcollect_api,
+                    ingest_api
+                } = process.env;
+
+                if (!azcollect_api || !ingest_api) {
+                    // handling errors like this because the other unit tests seem to indicate that
+                    // the collector should register even if there is an error in getting the endpoints.
+                    collector.updateEndpoints((err, newConfig) => {
+                        if (err) {
+                            console.warn('AWSC0014 Error updating endpoints', err);
+                        } else {
+                            // reassign env vars because the config change occurs in the same run in registration.
+                            const {
+                                Environment: {
+                                    Variables
+                                }
+                            } = newConfig;
+
+                            Object.assign(process.env, Variables);
+                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, collector._aimsc, 'aws', collector._collectorType);
+                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
+                        }
+
+                        asyncCallback(null);
+                    });
+                } else {
+                    asyncCallback(null);
+                }
+            },
+            function (asyncCallback) {
                 if (!collector.registered) {
                     collector.register(undefined, undefined, (err) => {
                         return asyncCallback(err);
@@ -311,10 +342,10 @@ class AlAwsCollector {
                     return asyncCallback();
                 }
             },
-            function(asyncCallback) {
+            function (asyncCallback) {
                 return collector.checkin(asyncCallback);
             }
-        ], function(err) {
+        ], function (err) {
             return collector.done(err);
         });
     }
@@ -435,44 +466,109 @@ class AlAwsCollector {
 
     sendStatus(status, callback) {
         let collector = this;
-        
-        if(!status || !collector.registered){
-            return callback(null);
-        } else {
-            zlib.deflate(JSON.stringify([status]), (compressionErr, compressed) => {
-                if (compressionErr) {
-                    return callback(compressionErr);
+
+        async.waterfall([
+            (asyncCallback) => {
+                const {
+                    azcollect_api,
+                    ingest_api
+                } = process.env;
+                if (!azcollect_api || !ingest_api) {
+                    // handling errors like this because the other unit tests seem to indicate that
+                    // the collector should send status even if there is an error in getting the endpoints.
+                    collector.updateEndpoints((err, newConfig) => {
+                        if (err) {
+                            console.warn('AWSC0016 Error updating endpoints', err);
+                        } else {
+                            // reassign env vars because the config change occurs in the same run in registration.
+                            const {
+                                Environment: {
+                                    Variables
+                                }
+                            } = newConfig;
+                            Object.assign(process.env, Variables);
+                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, collector._aimsc, 'aws', collector._collectorType);
+                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
+                        }
+                        asyncCallback(null);
+                    });
                 } else {
-                    collector._ingestc.sendAgentstatus(compressed)
-                    .then(resp => {
-                        return callback(null, resp);
-                    })
-                    .catch(exception => {
-                        console.warn('AWSC0013 Collector status send failed: ', exception);
-                        return callback(exception);
+                    asyncCallback(null);
+                }
+            },
+            (asyncCallback) => {
+                if (!status || !collector.registered) {
+                    return asyncCallback(null);
+                } else {
+                    zlib.deflate(JSON.stringify([status]), (compressionErr, compressed) => {
+                        if (compressionErr) {
+                            return asyncCallback(compressionErr);
+                        } else {
+                            collector._ingestc.sendAgentstatus(compressed)
+                                .then(resp => {
+                                    return asyncCallback(null, resp);
+                                })
+                                .catch(exception => {
+                                    console.warn('AWSC0013 Collector status send failed: ', exception);
+                                    return asyncCallback(exception);
+                                });
+                        }
                     });
                 }
-            });
-        }
+            }
+        ],
+            callback);
     }
     
     send(data, compress = true, callback) {
         var collector = this;
-        
-        if(!data){
-            return callback(null);
-        }
-        if (compress) {
-            zlib.deflate(data, function(compressionErr, compressed) {
-                if (compressionErr) {
-                    return callback(compressionErr);
+        async.waterfall([
+            (asyncCallback) => {
+                const {
+                    azcollect_api,
+                    ingest_api
+                } = process.env;
+                if (!azcollect_api || !ingest_api) {
+                    // handling errors like this because the other unit tests seem to indicate that
+                    // the collector should send data even if there is an error in getting the endpoints.
+                    collector.updateEndpoints((err, newConfig) => {
+                        if (err) {
+                            console.warn('AWSC0015 Error updating endpoints', err);
+                        } else {
+                            // reassign env vars because the config change occurs in the same run in registration.
+                            const {
+                                Environment: {
+                                    Variables
+                                }
+                            } = newConfig;
+                            Object.assign(process.env, Variables);
+                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, collector._aimsc, 'aws', collector._collectorType);
+                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
+                        }
+                        asyncCallback(null);
+                    });
                 } else {
-                    return collector._send(compressed, callback);
+                    asyncCallback(null);
                 }
-            });
-        } else {
-            return collector._send(data, callback);
-        }
+            },
+            (asyncCallback) => {
+                if (!data) {
+                    return asyncCallback(null);
+                }
+                if (compress) {
+                    zlib.deflate(data, function (compressionErr, compressed) {
+                        if (compressionErr) {
+                            return asyncCallback(compressionErr);
+                        } else {
+                            return collector._send(compressed, asyncCallback);
+                        }
+                    });
+                } else {
+                    return collector._send(data, asyncCallback);
+                }
+            }
+        ],
+            callback);
     }
     
     _send(data, callback) {

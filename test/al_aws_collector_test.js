@@ -254,6 +254,32 @@ describe('al_aws_collector tests', function() {
             });
         });
 
+        it('checkin success registered with env vars not set', function (done) {
+            delete process.env.ingest_api;
+            delete process.env.azcollect_api;
+            var mockCtx = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
+                functionName: colMock.FUNCTION_NAME,
+                fail: function (error) {
+                    assert.fail(error);
+                },
+                succeed: function () {
+                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
+                    done();
+                }
+            };
+
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    mockCtx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, undefined, [], []);
+                const testEvent = {
+                    RequestType: 'ScheduledEvent',
+                    Type: 'Checkin'
+                };
+                collector.handleEvent(testEvent);
+            });
+        });
+
         it('checkin forced update success', function(done) {
             alserviceStub.post.restore();
             alserviceStub.post = sinon.stub(m_alCollector.AlServiceC.prototype, 'post').callsFake(
@@ -485,6 +511,22 @@ describe('al_aws_collector tests', function() {
                 });
             });
         });
+        
+        it('send log success with env vars not set', function (done) {
+            delete process.env.ingest_api;
+            delete process.env.azcollect_api;
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                var data = 'some-data';
+                collector.send(data, false, function (error) {
+                    assert.ifError(error);
+                    sinon.assert.calledOnce(ingestCLogmsgsStub);
+                    sinon.assert.calledWith(ingestCLogmsgsStub, data);
+                    done();
+                });
+            });
+        });
 
         it('send vpcflow success', function(done) {
             AlAwsCollector.load().then(function(creds) {
@@ -640,6 +682,34 @@ describe('al_aws_collector tests', function() {
         });
 
         it('returns errors that can be stringified in their raw state', (done) => {
+            const stringifialbleError = {
+                foo: "bar"
+            };
+            const testContext = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
+                succeed: () => true,
+                fail: (error) => {
+                    assert.equal(error, JSON.stringify(stringifialbleError));
+                    done();
+                }
+
+            };
+
+            collector = new AlAwsCollector(
+                testContext,
+                'cwe',
+                AlAwsCollector.IngestTypes.SECMSGS,
+                '1.0.0',
+                colMock.AIMS_TEST_CREDS
+            );
+
+            collector.done(stringifialbleError);
+        });
+
+        it('returns errors that can be stringified in their raw state with env vars not set', (done) => {
+            delete process.env.ingest_api;
+            delete process.env.azcollect_api;
+
             const stringifialbleError = {
                 foo: "bar"
             };
