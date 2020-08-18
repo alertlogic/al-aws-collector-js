@@ -117,10 +117,10 @@ class AlAwsCollector {
             process.env.al_data_residency ?
                 process.env.al_data_residency :
                 'default';
-        this._alAzcollectEndpoint = process.env.azollect_api;
+        this._alAzcollectEndpoint = process.env.azcollect_api;
         this._aimsc = new m_alCollector.AimsC(process.env.al_api, aimsCreds, null, null, process.env.customer_id);
         this._endpointsc = new m_alCollector.EndpointsC(process.env.al_api, this._aimsc);
-        this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, 'aws', collectorType);
+        this._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, this._aimsc, 'aws', collectorType);
         this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
         this._formatFun = formatFun;
         this._customHealthChecks = healthCheckFuns;
@@ -230,7 +230,7 @@ class AlAwsCollector {
                 } else {
                     var endpoints = {
                         ingest_api : mapResult[0].ingest,
-                        azollect_api : mapResult[1].azcollect
+                        azcollect_api : mapResult[1].azcollect
                     };
                     return m_alAws.setEnv(endpoints, callback);
                 }
@@ -260,7 +260,7 @@ class AlAwsCollector {
                     ingest_api
                 } = process.env;
 
-                if(!azcollect_api || !ingest_api){
+                if(!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined"){
                     // handling errors like this because the other unit tests seem to indicate that
                     // the collector should register even if there is an error in getting the endpoints.
                     this.updateEndpoints((err, newConfig) => {
@@ -275,7 +275,7 @@ class AlAwsCollector {
                             } = newConfig;
 
                             Object.assign(process.env, Variables);
-                            this._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, this._aimsc, 'aws', this._collectorType);
+                            this._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, this._aimsc, 'aws', this._collectorType);
                             this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
                         }
 
@@ -308,7 +308,7 @@ class AlAwsCollector {
                     ingest_api
                 } = process.env;
 
-                if (!azcollect_api || !ingest_api) {
+                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
                     // handling errors like this because the other unit tests seem to indicate that
                     // the collector should register even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
@@ -323,7 +323,7 @@ class AlAwsCollector {
                             } = newConfig;
 
                             Object.assign(process.env, Variables);
-                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, collector._aimsc, 'aws', collector._collectorType);
+                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
                             collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
                         }
 
@@ -473,7 +473,7 @@ class AlAwsCollector {
                     azcollect_api,
                     ingest_api
                 } = process.env;
-                if (!azcollect_api || !ingest_api) {
+                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
                     // handling errors like this because the other unit tests seem to indicate that
                     // the collector should send status even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
@@ -487,7 +487,7 @@ class AlAwsCollector {
                                 }
                             } = newConfig;
                             Object.assign(process.env, Variables);
-                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, collector._aimsc, 'aws', collector._collectorType);
+                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
                             collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
                         }
                         asyncCallback(null);
@@ -528,7 +528,7 @@ class AlAwsCollector {
                     azcollect_api,
                     ingest_api
                 } = process.env;
-                if (!azcollect_api || !ingest_api) {
+                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
                     // handling errors like this because the other unit tests seem to indicate that
                     // the collector should send data even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
@@ -542,7 +542,7 @@ class AlAwsCollector {
                                 }
                             } = newConfig;
                             Object.assign(process.env, Variables);
-                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azollect_api, collector._aimsc, 'aws', collector._collectorType);
+                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
                             collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
                         }
                         asyncCallback(null);

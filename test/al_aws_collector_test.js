@@ -111,7 +111,7 @@ function mockLambdaEndpointsUpdateConfiguration() {
         assert.deepEqual(params.Environment, {
             Variables: {
                 ingest_api: 'new-ingest-endpoint',
-                azollect_api: 'new-azcollect-endpoint'
+                azcollect_api: 'new-azcollect-endpoint'
             }
         });
         return callback(null, params);
@@ -125,7 +125,7 @@ function mockSetEnvStub() {
             azcollect_api
         } = vars;
         process.env.ingest_api = ingest_api ? ingest_api : process.env.ingest_api;
-        process.env.azollect_api = azcollect_api ? azcollect_api : process.env.azollect_api;
+        process.env.azcollect_api = azcollect_api ? azcollect_api : process.env.azcollect_api;
         const returnBody = {
             Environment: {
                 Varaibles: vars
@@ -192,8 +192,10 @@ describe('al_aws_collector tests', function() {
 
     it('register success with env vars not set', function(done) {
         mockLambdaEndpointsUpdateConfiguration();
-        delete process.env.ingest_api;
-        delete process.env.azcollect_api;
+        const envIngestApi = process.env.ingest_api;
+        const envAzcollectApi = process.env.ingest_api;
+        process.env.ingest_api = undefined;
+        process.env.azcollect_api = undefined;
         var mockContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             succeed : () => {
@@ -205,7 +207,19 @@ describe('al_aws_collector tests', function() {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
             mockContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, function() {});
-            collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+            let spy = sinon.spy(collector, "updateEndpoints");
+            let promise = new Promise(function (resolve, reject) {
+                return resolve(collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS));
+            });
+            promise.then((result) => {
+                sinon.assert.calledOnce(spy);
+                assert.ok(process.env.ingest_api);
+                assert.ok(process.env.azcollect_api);
+                assert.equal(process.env.ingest_api, "new-ingest-endpoint");
+                assert.equal(process.env.azcollect_api, "new-azcollect-endpoint");
+                process.env.ingest_api = envIngestApi;
+                process.env.azcollect_api = envAzcollectApi;
+            });
         });
     });
 
@@ -255,8 +269,10 @@ describe('al_aws_collector tests', function() {
         });
 
         it('checkin success registered with env vars not set', function (done) {
-            delete process.env.ingest_api;
-            delete process.env.azcollect_api;
+            const envIngestApi = process.env.ingest_api;
+            const envAzcollectApi = process.env.ingest_api;
+            process.env.ingest_api = undefined;
+            process.env.azcollect_api = undefined;
             var mockCtx = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
                 functionName: colMock.FUNCTION_NAME,
@@ -276,7 +292,19 @@ describe('al_aws_collector tests', function() {
                     RequestType: 'ScheduledEvent',
                     Type: 'Checkin'
                 };
-                collector.handleEvent(testEvent);
+                let spy = sinon.spy(collector, "updateEndpoints");
+                let promise = new Promise(function (resolve, reject) {
+                    return resolve(collector.handleEvent(testEvent));
+                });
+                promise.then((result) => {
+                    sinon.assert.calledOnce(spy);
+                    assert.ok(process.env.ingest_api);
+                    assert.ok(process.env.azcollect_api);
+                    assert.equal(process.env.ingest_api,"new-ingest-endpoint");
+                    assert.equal(process.env.azcollect_api,"new-azcollect-endpoint");
+                    process.env.ingest_api = envIngestApi;
+                    process.env.azcollect_api = envAzcollectApi;
+                });
             });
         });
 
@@ -513,16 +541,26 @@ describe('al_aws_collector tests', function() {
         });
         
         it('send log success with env vars not set', function (done) {
-            delete process.env.ingest_api;
-            delete process.env.azcollect_api;
+            const envIngestApi = process.env.ingest_api;
+            const envAzcollectApi = process.env.ingest_api;
+            process.env.ingest_api = undefined;
+            process.env.azcollect_api = undefined;
             AlAwsCollector.load().then(function (creds) {
                 var collector = new AlAwsCollector(
                     context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
                 var data = 'some-data';
+                let spy = sinon.spy(collector, "updateEndpoints");
                 collector.send(data, false, function (error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCLogmsgsStub);
                     sinon.assert.calledWith(ingestCLogmsgsStub, data);
+                    sinon.assert.calledOnce(spy);
+                    assert.ok(process.env.ingest_api);
+                    assert.ok(process.env.azcollect_api);
+                    assert.equal(process.env.ingest_api,"new-ingest-endpoint");
+                    assert.equal(process.env.azcollect_api,"new-azcollect-endpoint");
+                    process.env.ingest_api = envIngestApi;
+                    process.env.azcollect_api = envAzcollectApi;
                     done();
                 });
             });
@@ -707,8 +745,10 @@ describe('al_aws_collector tests', function() {
         });
 
         it('returns errors that can be stringified in their raw state with env vars not set', (done) => {
-            delete process.env.ingest_api;
-            delete process.env.azcollect_api;
+            const envIngestApi = process.env.ingest_api;
+            const envAzcollectApi = process.env.ingest_api;
+            process.env.ingest_api = undefined;
+            process.env.azcollect_api = undefined;
 
             const stringifialbleError = {
                 foo: "bar"
@@ -730,8 +770,19 @@ describe('al_aws_collector tests', function() {
                 '1.0.0',
                 colMock.AIMS_TEST_CREDS
             );
-
-            collector.done(stringifialbleError);
+            let spy = sinon.spy(collector, "updateEndpoints");
+            let promise = new Promise(function (resolve, reject) {
+                return resolve(collector.done(stringifialbleError));
+            });
+            promise.then((result) => {
+                sinon.assert.calledOnce(spy);
+                assert.ok(process.env.ingest_api);
+                assert.ok(process.env.azcollect_api);
+                assert.equal(process.env.ingest_api,"new-ingest-endpoint");
+                assert.equal(process.env.azcollect_api,"new-azcollect-endpoint");
+                process.env.ingest_api = envIngestApi;
+                process.env.azcollect_api = envAzcollectApi;
+            });
         });
 
         it('returns errors that cannot be JSON stringified as a string', () => {
