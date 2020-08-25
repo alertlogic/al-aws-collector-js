@@ -310,12 +310,12 @@ class AlAwsCollector {
 
                 if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
                     // handling errors like this because the other unit tests seem to indicate that
-                    // the collector should register even if there is an error in getting the endpoints.
+                    // the collector should handle check in even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
                         if (err) {
                             console.warn('AWSC0014 Error updating endpoints', err);
                         } else {
-                            // reassign env vars because the config change occurs in the same run in registration.
+                            // reassign env vars because the config change occurs in the same run in handle check in.
                             const {
                                 Environment: {
                                     Variables
@@ -480,7 +480,7 @@ class AlAwsCollector {
                         if (err) {
                             console.warn('AWSC0016 Error updating endpoints', err);
                         } else {
-                            // reassign env vars because the config change occurs in the same run in registration.
+                            // reassign env vars because the config change occurs in the same run in sending status.
                             const {
                                 Environment: {
                                     Variables
@@ -535,7 +535,7 @@ class AlAwsCollector {
                         if (err) {
                             console.warn('AWSC0015 Error updating endpoints', err);
                         } else {
-                            // reassign env vars because the config change occurs in the same run in registration.
+                            // reassign env vars because the config change occurs in the same run in sending data.
                             const {
                                 Environment: {
                                     Variables
