@@ -150,6 +150,14 @@ class AlAwsCollector {
     get aws_account_id () {
         return this._awsAccountId;
     }
+
+    get cid () {
+        return this._aimsc.cid;
+    }
+
+    get collector_id () {
+        return this._collectorId;
+    }
     
     done(error) {
         let context = this._invokeContext;
