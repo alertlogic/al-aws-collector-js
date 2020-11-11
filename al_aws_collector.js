@@ -159,7 +159,7 @@ class AlAwsCollector {
         return this._collectorId;
     }
     
-    done(error) {
+    done(error, streamType) {
         let context = this._invokeContext;
         if (error) {
             // The lambda context tries to stringify errors, 
@@ -175,7 +175,7 @@ class AlAwsCollector {
                         // when all else fails, stringify it the gross way with inspect
                         util.inspect(error);
             }
-            const status = this.prepareErrorStatus(errorString);
+            const status = streamType ? this.prepareErrorStatus(errorString, streamType, null) : this.prepareErrorStatus(errorString);
             this.sendStatus(status, () => {
                 context.fail(errorString);
             });
@@ -184,7 +184,7 @@ class AlAwsCollector {
         }
     }
     
-    prepareErrorStatus(errorString, streamName = 'none', collectionType, errorCode) {
+    prepareErrorStatus(errorString, collectionType, errorCode, streamName = 'none') {
         let cType = collectionType ? collectionType : this._ingestType;
         let errorData = errorCode ? 
             [
@@ -202,7 +202,7 @@ class AlAwsCollector {
             host_uuid: this._collectorId,
             data: errorData,
             agent_type: this._collectorType,
-            collection_type: cType,
+            collection_type: cType, //ingest will treat it as application in assets
             timestamp: moment().unix()
         };
     }
