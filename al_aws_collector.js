@@ -180,8 +180,25 @@ class AlAwsCollector {
                 context.fail(errorString);
             });
         } else {
-            return context.succeed();
+            let okStatus = prepareHealthyStatus(streamType);
+            this.sendStatus(okStatus, () => {
+                return context.succeed();
+            });
         }
+    }
+
+    prepareHealthyStatus(streamType, streamName = 'none') {
+        return {
+            stream_name: streamName,
+            status_type: 'ok',
+            stream_type: 'status',
+            message_type: 'collector_status',
+            host_uuid: this._collectorId,
+            data: [],
+            agent_type: this._collectorType,
+            collection_type:  streamType ? streamType : this._ingestType,
+            timestamp: moment().unix()
+        };
     }
     
     prepareErrorStatus(errorString, collectionType, errorCode, streamName = 'none') {
@@ -202,7 +219,7 @@ class AlAwsCollector {
             host_uuid: this._collectorId,
             data: errorData,
             agent_type: this._collectorType,
-            collection_type: cType, //ingest will treat it as application in assets
+            collection_type: cType,
             timestamp: moment().unix()
         };
     }
