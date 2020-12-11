@@ -180,10 +180,15 @@ class AlAwsCollector {
                 context.fail(errorString);
             });
         } else {
-            let okStatus = prepareHealthyStatus(streamType);
-            this.sendStatus(okStatus, () => {
+            let okStatus = this.prepareHealthyStatus(streamType);
+            if (moment().minutes() === 0 && moment().seconds() === 0) {
+                // post the sub object status on hourly basis
+                this.sendStatus(okStatus, () => {
+                    return context.succeed();
+                });
+            } else {
                 return context.succeed();
-            });
+            }
         }
     }
 
