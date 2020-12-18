@@ -175,20 +175,16 @@ class AlAwsCollector {
                         // when all else fails, stringify it the gross way with inspect
                         util.inspect(error);
             }
-            const status = streamType ? this.prepareErrorStatus(errorString, streamType, null) : this.prepareErrorStatus(errorString);
-            this.sendStatus(status, () => {
-                context.fail(errorString);
-            });
-        } else {
-            let okStatus = this.prepareHealthyStatus(streamType);
-            if (moment().minutes() === 0 && moment().seconds() === 0) {
-                // post the sub object status on hourly basis
-                this.sendStatus(okStatus, () => {
-                    return context.succeed();
-                });
+            if (streamType) {
+                return this.checkCollectorSubObjectState(error, streamType);
             } else {
-                return context.succeed();
-            }
+                const status = this.prepareErrorStatus(errorString);
+                this.sendStatus(status, () => {
+                    context.fail(errorString);
+                });
+            }  
+        } else {
+            return this.checkCollectorSubObjectState(null, streamType);
         }
     }
 
@@ -227,6 +223,98 @@ class AlAwsCollector {
             collection_type: cType,
             timestamp: moment().unix()
         };
+    }
+
+    checkCollectorSubObjectState(error, streamType, asyncCallback) {
+        const collector = this;
+        const DDB = new AWS.DynamoDB();
+        const TABLE_NAME = 'CollectorSubObjectState';
+        const ERROR = 'ERROR';
+        let context = this._invokeContext;
+        const params = {
+            Key: {
+                "CollectorId": { S: collector._collectorId },
+                "StreamType": { s: streamType }
+            },
+            TableName: TABLE_NAME,
+            ConsistentRead: true
+        }
+        const getItemPromise = DDB.getItem(params).promise();
+        getItemPromise.then(data => {
+            // if the item is alread there, try and see if it is a duplicate
+            if (error) {
+                if (data.Item  && data.Item.StreamType.S === streamType) {
+                     // update the time stamp in table
+                    // Do not call the sendStatus
+                    this.updateStateDBEntry(StreamType, ERROR, asyncCallback);
+                    // otherwise, put a new item in ddb.
+                } else {
+                    // add the new record in table 
+                    const newRecord = {
+                        Item: {
+                            CollectorId: { S: collector._collectorId },
+                            StreamType: { S: streamType },
+                            Status: { S: ERROR }, 
+                            TimeStamp: { N: moment().unix() }
+                        },
+                        TableName: TABLE_NAME
+                    }
+                    DDB.putItem(newRecord, (err) => {
+                        if (err) {
+                            return asyncCallback(err);
+                        } else {
+                            return asyncCallback(null)
+                        }
+                    });
+                    const status =  this.prepareErrorStatus(errorString, streamType, null);
+                    this.sendStatus(status, () => {
+                        context.fail(errorString);
+                    });
+                }
+            } else {
+                // check current time is greater than error timeStamp by 1 hr
+                if (data.Item && data.Item.Status.S === ERROR && moment().unix() - parseInt(data.Item.TimeStamp.N) > 3600) {
+                    // update the entry in DB with status and timestamp
+                    this.updateStateDBEntry(StreamType, "OK", asyncCallback);
+                    this.sendStatus(okStatus, () => {
+                        return context.succeed();
+                    });  
+                } else {
+                    return context.succeed();
+                }
+            }
+        }).catch(asyncCallback)
+    }
+
+    updateStateDBEntry(streamType, Status,asyncCallback) {
+        const collector = this;
+        const DDB = new AWS.DynamoDB();
+        const TABLE_NAME = 'CollectorSubObjectState'
+
+        const updateParams = {
+            Key: {
+                CollectorId: { S: collector._collectorId },
+                StreamType: { s: streamType }
+            },
+            AttributeUpdates: {
+                TimeStamp: {
+                    Action: 'PUT',
+                    Value: { N: moment().unix().toString() }
+                },
+                Status: {
+                    Action: 'PUT',
+                    Value: { S: Status }
+                },
+            },
+            TableName: TABLE_NAME
+        };
+        DDB.updateItem(updateParams, (err) => {
+            if (err) {
+                return asyncCallback(err);
+            } else {
+                return asyncCallback(null)
+            }
+        });
     }
     
     getProperties() {
