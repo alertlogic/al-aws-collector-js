@@ -187,20 +187,21 @@ class AlAwsCollector {
                 context.fail(errorString);
             });  
         } else {
-            this.checkCollectorSubObjectState(null, streamType, (err, status) => {
-                if (err) {
-                    console.log(err);
-                }
-                else if (status === 'OK') {
-                    let okStatus = this.prepareHealthyStatus(streamType);
-                    this.sendStatus(okStatus, () => {
-                        return context.succeed();
-                    });
-                }
-                else {
-                    return context.succeed();
-                }
-            });
+            if(streamType){
+                this.checkCollectorSubObjectState(null, streamType, (err, status) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    else if (status === 'OK') {
+                        let okStatus = this.prepareHealthyStatus(streamType);
+                        this.sendStatus(okStatus, () => {
+                            return context.succeed();
+                        });
+                    }
+                });
+            } else {
+                return context.succeed();
+            }
         }
     }
 
