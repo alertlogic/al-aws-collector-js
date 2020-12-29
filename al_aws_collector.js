@@ -44,6 +44,8 @@ const NOUPDATE_CONFIG_PARAMS = [
     'LastUpdateStatusReasonCode'
 ];
 
+const  SUB_OBJECT_STATE_TABLE_NAME = 'CollectorSubObjectState';
+
 function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
         return callback(null, AIMS_DECRYPTED_CREDS);
@@ -197,6 +199,8 @@ class AlAwsCollector {
                         this.sendStatus(okStatus, () => {
                             return context.succeed();
                         });
+                    } else {
+                        return context.succeed();
                     }
                 });
             } else {
@@ -245,14 +249,13 @@ class AlAwsCollector {
     checkCollectorSubObjectState(error, streamType, callback) {
         const collector = this;
         const DDB = new AWS.DynamoDB();
-        const TABLE_NAME = 'CollectorSubObjectState';
         const ERROR = 'ERROR';
         const params = {
             Key: {
                 "CollectorId": { S: collector._collectorId },
                 "StreamType": { S: streamType }
             },
-            TableName: TABLE_NAME,
+            TableName: SUB_OBJECT_STATE_TABLE_NAME,
             ConsistentRead: true
         }
         const getItemPromise = DDB.getItem(params).promise();
@@ -270,7 +273,7 @@ class AlAwsCollector {
                             Status: { S: ERROR },
                             TimeStamp: { N: moment().unix().toString() }
                         },
-                        TableName: TABLE_NAME
+                        TableName: SUB_OBJECT_STATE_TABLE_NAME
                     }
                     DDB.putItem(newRecord, (err) => {
                         if (err) {
@@ -303,7 +306,6 @@ class AlAwsCollector {
     updateSubObjectStateDBEntry(streamType, Status, callback) {
         const collector = this;
         const DDB = new AWS.DynamoDB();
-        const TABLE_NAME = 'CollectorSubObjectState'
 
         const updateParams = {
             Key: {
@@ -320,7 +322,7 @@ class AlAwsCollector {
                     Value: { N: moment().unix().toString() }
                 }
             },
-            TableName: TABLE_NAME
+            TableName: SUB_OBJECT_STATE_TABLE_NAME
         };
         DDB.updateItem(updateParams, (err) => {
             if (err) {
