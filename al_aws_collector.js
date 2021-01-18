@@ -44,8 +44,6 @@ const NOUPDATE_CONFIG_PARAMS = [
     'LastUpdateStatusReasonCode'
 ];
 
-const  SUB_OBJECT_STATE_TABLE_NAME = 'CollectorSubObjectState';
-
 function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
         return callback(null, AIMS_DECRYPTED_CREDS);
@@ -106,7 +104,7 @@ class AlAwsCollector {
     }
     
     constructor(context, collectorType, ingestType, version, aimsCreds,
-            formatFun, healthCheckFuns, statsFuns) {
+            formatFun, healthCheckFuns, statsFuns, streams = []) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
         this._awsAccountId = m_alAws.arnToAccId(context.invokedFunctionArn);
@@ -130,6 +128,7 @@ class AlAwsCollector {
         this._collectorId = process.env.collector_id;
         this._stackName = process.env.stack_name;
         this._applicationId = process.env.al_application_id;
+        this._streams = streams;
     }
     
     set context (context) {
@@ -161,7 +160,15 @@ class AlAwsCollector {
         return this._collectorId;
     }
     
-    done(error, streamType) {
+    set streams (streams) {
+        this._streams = streams;
+    }
+    get streams () {
+        return this._streams;
+    }
+
+
+    done(error , streamType) {
         let context = this._invokeContext;
         if (error) {
             // The lambda context tries to stringify errors, 
@@ -177,38 +184,15 @@ class AlAwsCollector {
                         // when all else fails, stringify it the gross way with inspect
                         util.inspect(error);
             }
-            if (streamType) {
-                this.checkCollectorSubObjectState(errorString, streamType, (err) => {
-                    if (err) {
-                        console.log(err);
-                    }
-                });
-            }
-            let status = streamType ? this.prepareErrorStatus(errorString, streamType, null) : this.prepareErrorStatus(errorString);
+            // post stream specific error
+            const status = streamType ? this.prepareErrorStatus(errorString, streamType, null) : this.prepareErrorStatus(errorString);
             this.sendStatus(status, () => {
                 context.fail(errorString);
-            });  
+            });
         } else {
-            if(streamType){
-                this.checkCollectorSubObjectState(null, streamType, (err, status) => {
-                    if (err) {
-                        console.log(err);
-                    }
-                    else if (status === 'OK') {
-                        let okStatus = this.prepareHealthyStatus(streamType);
-                        this.sendStatus(okStatus, () => {
-                            return context.succeed();
-                        });
-                    } else {
-                        return context.succeed();
-                    }
-                });
-            } else {
-                return context.succeed();
-            }
+            return context.succeed();
         }
     }
-
     prepareHealthyStatus(streamType, streamName = 'none') {
         return {
             stream_name: streamName,
@@ -246,92 +230,6 @@ class AlAwsCollector {
         };
     }
 
-    checkCollectorSubObjectState(error, streamType, callback) {
-        const collector = this;
-        const DDB = new AWS.DynamoDB();
-        const ERROR = 'ERROR';
-        const params = {
-            Key: {
-                "CollectorId": { S: collector._collectorId },
-                "StreamType": { S: streamType }
-            },
-            TableName: SUB_OBJECT_STATE_TABLE_NAME,
-            ConsistentRead: true
-        }
-        const getItemPromise = DDB.getItem(params).promise();
-        getItemPromise.then(data => {
-            // If the item is alread there, just update the time stamp.
-            if (error) {
-                if (data.Item && data.Item.StreamType.S === streamType) {
-                    return collector.updateSubObjectStateDBEntry(streamType, ERROR, callback);
-                } else {
-                    // otherwise put a new item in ddb 
-                    const newRecord = {
-                        Item: {
-                            CollectorId: { S: collector._collectorId },
-                            StreamType: { S: streamType },
-                            Status: { S: ERROR },
-                            TimeStamp: { N: moment().unix().toString() }
-                        },
-                        TableName: SUB_OBJECT_STATE_TABLE_NAME
-                    }
-                    DDB.putItem(newRecord, (err) => {
-                        if (err) {
-                            return callback(err);
-                        } else {
-                            return callback(null);
-                        }
-                    });
-                }
-            } else {
-                // check current time is greater than error timeStamp by 1 hr
-                if (data.Item && data.Item.Status.S === ERROR && moment().unix() - parseInt(data.Item.TimeStamp.N) > 3600) {
-                    // update the entry in DB with status and timestamp
-                    collector.updateSubObjectStateDBEntry(streamType, "OK", (err) => {
-                        if (err) {
-                            return callback(err);
-                        } else {
-                            return callback(null, 'OK');
-                        }
-                    });
-                } else {
-                    return callback(null);
-                }
-            }
-        }).catch(function (exception) {
-            return callback(exception);
-        });
-    }
-
-    updateSubObjectStateDBEntry(streamType, Status, callback) {
-        const collector = this;
-        const DDB = new AWS.DynamoDB();
-
-        const updateParams = {
-            Key: {
-                CollectorId: { S: collector._collectorId },
-                StreamType: { S: streamType }
-            },
-            AttributeUpdates: {
-                Status: {
-                    Action: 'PUT',
-                    Value: { S: Status }
-                },
-                TimeStamp: {
-                    Action: 'PUT',
-                    Value: { N: moment().unix().toString() }
-                }
-            },
-            TableName: SUB_OBJECT_STATE_TABLE_NAME
-        };
-        DDB.updateItem(updateParams, (err) => {
-            if (err) {
-                return callback(err);
-            } else {
-                return callback(null);
-            }
-        });
-    }
     
     getProperties() {
         return {
@@ -504,6 +402,28 @@ class AlAwsCollector {
             }
         ],
         function(err, checkinParts) {
+
+            let invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints;
+            let errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ;
+
+            if (checkinParts[0].status === 'ok' &&  invocationStatsDatapoints && invocationStatsDatapoints.length > 0 &&  errorStatsDatapoints && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
+                
+                let collectorStreams = JSON.parse(collector._streams);
+                if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
+                    collectorStreams.map(streamType => {
+                        // make api call to send status ok
+                        let okStatus = collector.prepareHealthyStatus(`${collector._applicationId}_${streamType}`);
+                        collector.sendStatus(okStatus, () => {
+                            return context.succeed();
+                        });
+                    })
+                } else {
+                    let okStatus = collector.prepareHealthyStatus();
+                    collector.sendStatus(okStatus, () => {
+                            return context.succeed();
+                        });
+                }
+            }
             const checkin = Object.assign(
                 collector.getProperties(), checkinParts[0], checkinParts[1]
             );

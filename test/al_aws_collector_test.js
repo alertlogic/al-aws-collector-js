@@ -147,17 +147,6 @@ var formatFun = function (event, context, callback) {
     return callback(null, event);
 };
 
-function mockDDB(getItemStub, putItemStub, updateItemStub){
-    const defaultMock = (_params, callback) => {
-        return callback(null, {data: null});
-    };
-
-    AWS.mock('DynamoDB', 'getItem', getItemStub ? getItemStub : defaultMock);
-
-    AWS.mock('DynamoDB', 'putItem', putItemStub ? putItemStub : defaultMock);
-
-    AWS.mock('DynamoDB', 'updateItem', updateItemStub ? updateItemStub : defaultMock);
-}
 
 describe('al_aws_collector tests', function() {
 
@@ -731,31 +720,6 @@ describe('al_aws_collector tests', function() {
             assert.ok(doneResult);
         });
 
-        it('calls success when there is no error and stremtype is passed', (done) => {
-             process.env.AWS_REGION = 'ap-south-1';
-            const testContext = {
-                invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => true,
-                fail: () => false
-            };
-
-            collector = new AlAwsCollector(
-                testContext,
-                'cwe',
-                AlAwsCollector.IngestTypes.SECMSGS,
-                '1.0.0',
-                colMock.AIMS_TEST_CREDS
-            );
-            let spy = sinon.spy(collector, "checkCollectorSubObjectState");
-            let promise = new Promise(function (resolve, reject) {
-                return resolve(collector.done(null, 'salesforce_EventLogFile'));
-            });
-
-            promise.then((result) => {
-                sinon.assert.calledOnce(spy);
-                done();
-            });
-        });
 
         it('returns errors that can be stringified in their raw state', (done) => {
             const stringifialbleError = {
@@ -1018,50 +982,6 @@ describe('al_aws_collector tests', function() {
         });
     });
 
-    describe('checkCollectorSubObjectState ', function(){
-      
-        it('creates a new DDB item when the error occure with stream type', (done)=>{
-            const fakeFun = function(_params, callback){return callback(null, {data:null});};
-            const putItemStub = sinon.stub().callsFake(fakeFun);
-            const updateItemStub = sinon.stub().callsFake(fakeFun);
-            mockDDB(null, putItemStub, updateItemStub);
-            const stringifialbleError = {
-                foo: "bar"
-            };
-            
-            let testContext = {
-                invokedFunctionArn: colMock.FUNCTION_ARN,
-                fail : () => false,
-                succeed : function() {
-                   const putItemArgs = putItemStub.args[0][0];
-                   const updateItemArgs = updateItemStub.args[0][0];
-                    assert.equal(putItemStub.called, true, 'should put a new item in');
-                    assert.equal(putItemArgs.Item.StreamType.S, "salesforce_EventLogFile");
-                    assert.equal(updateItemArgs.Item.StreamType.S, "salesforce_EventLogFile");
-
-                    AWS.restore('DynamoDB');
-                    done();
-                }
-            };
-            
-            AlAwsCollector.load().then(function(creds) {
-                var collector = new AlAwsCollector(testContext,'cwe',AlAwsCollector.IngestTypes.LOGMSGS,'1.0.0',colMock.AIMS_TEST_CREDS);
-                let prepareErrorStatusSpy = sinon.spy(collector,'prepareErrorStatus');
-                let sendStatusSpy = sinon.spy(collector,'sendStatus');
-                let promise = new Promise(function (resolve, reject) {
-                    return resolve(collector.done(stringifialbleError, 'salesforce_EventLogFile'));
-                });
-    
-                promise.then((result) => {
-                    sinon.assert.calledOnce(prepareErrorStatusSpy);
-                    sinon.assert.calledOnce(sendStatusSpy);
-                    done();
-                });
-            });
-        });
-        
-    });
-
 });
 
 
@@ -1201,7 +1121,7 @@ describe('al_aws_collector error tests', function() {
     it('checkin error', function(done) {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
-                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], [],[]);
             collector.checkin(function(error) {
                 assert.equal(error, 'post error');
                 done();
