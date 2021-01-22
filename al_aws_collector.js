@@ -80,7 +80,7 @@ function getDecryptedCredentials(callback) {
  * @param {function} formatFun - callback formatting function
  * @param {Array.<function>} healthCheckFuns - list of custom health check functions (can be just empty, so only common are applied)
  * @param {Array.<function>} statsFuns - list of custom stats functions (can be just empty, so only common are applied)
- *
+ * @param {Array} streams - List of stream from collector
  */
 class AlAwsCollector {
     static get IngestTypes() {

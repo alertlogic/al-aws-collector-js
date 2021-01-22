@@ -746,6 +746,36 @@ describe('al_aws_collector tests', function() {
             collector.done(stringifialbleError);
         });
 
+        it('calls success when there is no error and stremtype is passed', (done) => {
+            const stringifialbleError = {
+                foo: "bar"
+            };
+           const testContext = {
+               invokedFunctionArn: colMock.FUNCTION_ARN,
+               succeed: () => true,
+               fail: (error) => {
+                assert.equal(error, JSON.stringify(stringifialbleError));
+                done();
+            }
+           };
+
+           collector = new AlAwsCollector(
+               testContext,
+               'cwe',
+               AlAwsCollector.IngestTypes.SECMSGS,
+               '1.0.0',
+               colMock.AIMS_TEST_CREDS
+           );
+           let spy = sinon.spy(collector, "sendStatus");
+           let promise = new Promise(function (resolve, reject) {
+               return resolve(collector.done(stringifialbleError, 'salesforce_EventLogFile'));
+           });
+
+           promise.then((result) => {
+               sinon.assert.calledOnce(spy);
+           });
+       });
+
         it('returns errors that can be stringified in their raw state with env vars not set', (done) => {
             const envIngestApi = process.env.ingest_api;
             const envAzcollectApi = process.env.ingest_api;
