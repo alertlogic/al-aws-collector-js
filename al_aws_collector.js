@@ -185,7 +185,7 @@ class AlAwsCollector {
                         util.inspect(error);
             }
             // post stream specific error
-            const status = streamType ? this.prepareErrorStatus(errorString, streamType, null) : this.prepareErrorStatus(errorString);
+            const status = streamType ? this.prepareErrorStatus(errorString,'none' , streamType) : this.prepareErrorStatus(errorString);
             this.sendStatus(status, () => {
                 context.fail(errorString);
             });
@@ -207,7 +207,7 @@ class AlAwsCollector {
         };
     }
     
-    prepareErrorStatus(errorString, collectionType, errorCode, streamName = 'none') {
+    prepareErrorStatus(errorString, streamName = 'none', collectionType, errorCode) {
         let cType = collectionType ? collectionType : this._ingestType;
         let errorData = errorCode ? 
             [
@@ -403,11 +403,11 @@ class AlAwsCollector {
         ],
         function(err, checkinParts) {
 
-            let invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints;
-            let errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ;
+            let invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints ? checkinParts[1].statistics[0].Datapoints : checkinParts[1].statistics;
+            let errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics ;
 
-            if (checkinParts[0].status === 'ok' &&  invocationStatsDatapoints && invocationStatsDatapoints.length > 0 &&  errorStatsDatapoints && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
-                
+            if (checkinParts[0].status === 'ok'  && invocationStatsDatapoints.length > 0 
+                 && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
                 let collectorStreams = JSON.parse(collector._streams);
                 if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
                     collectorStreams.map(streamType => {
@@ -420,8 +420,8 @@ class AlAwsCollector {
                 } else {
                     let okStatus = collector.prepareHealthyStatus();
                     collector.sendStatus(okStatus, () => {
-                            return context.succeed();
-                        });
+                        return context.succeed();
+                    });
                 }
             }
             const checkin = Object.assign(
