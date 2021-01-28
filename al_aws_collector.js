@@ -406,7 +406,7 @@ class AlAwsCollector {
             let invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints ? checkinParts[1].statistics[0].Datapoints : checkinParts[1].statistics;
             let errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics ;
 
-            if (checkinParts[0].status === 'ok'  && invocationStatsDatapoints.length > 0 
+            if (checkinParts[0].status === 'ok'  && invocationStatsDatapoints.length > 0  && invocationStatsDatapoints[0].Sum > 0
                  && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
                 let collectorStreams = JSON.parse(collector._streams);
                 if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
