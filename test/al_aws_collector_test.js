@@ -336,6 +336,37 @@ describe('al_aws_collector tests', function() {
             });
         });
 
+        it('Do not post ok status if cheking errors metric sum value greater than 0', function(done) {
+            var mockContextCheckin = {
+                invokedFunctionArn : colMock.FUNCTION_ARN,
+                functionName : colMock.FUNCTION_NAME,
+                fail : false,
+                succeed: function () {
+                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
+                    done();
+                }
+            };
+            
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    mockContextCheckin, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], [],['LoginHistory', 'EventLogFile','ApiEvent']);
+                const testEvent = {
+                    RequestType: 'ScheduledEvent',
+                    Type: 'Checkin'
+                };
+
+                let prepareHealthyStatusSpy = sinon.spy(collector, 'prepareHealthyStatus');
+                let sendStatusSpy = sinon.spy(collector, 'sendStatus');
+
+                let promise = new Promise(function (resolve, reject) {
+                    return resolve(collector.handleEvent(testEvent));
+                });
+                promise.then((result) => {
+                    sinon.assert.calledOnce(prepareHealthyStatusSpy,0);
+                    sinon.assert.calledOnce(sendStatusSpy,0);
+                });
+            });
+        });
         it('checkin with custom check success', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var spyHealthCheck = sinon.spy(function(callback) {
@@ -746,7 +777,7 @@ describe('al_aws_collector tests', function() {
             collector.done(stringifialbleError);
         });
 
-        it('calls success when there is no error and stremtype is passed', (done) => {
+        it('Post stream specific error when streamType is send to Done method', (done) => {
             const stringifialbleError = {
                 foo: "bar"
             };
