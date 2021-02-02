@@ -406,22 +406,24 @@ class AlAwsCollector {
             const invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints ? checkinParts[1].statistics[0].Datapoints : checkinParts[1].statistics;
             const errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics ;
             const collectorStreams = collector._streams;
-            if (checkinParts[0].status === 'ok'  && invocationStatsDatapoints.length > 0  && invocationStatsDatapoints[0].Sum > 0
-                 && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
+
+            if (checkinParts[0].status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0
+                && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
+
+                let streamSpecificStatus = [];
                 if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
                     collectorStreams.map(streamType => {
-                        // make api call to send status ok
                         let okStatus = collector.prepareHealthyStatus(`${collector._applicationId}_${streamType}`);
-                        collector.sendStatus(okStatus, () => {
-                            return context.succeed();
-                        });
-                    })
+                        streamSpecificStatus.push(okStatus);
+                    });
                 } else {
                     let okStatus = collector.prepareHealthyStatus();
-                    collector.sendStatus(okStatus, () => {
-                        return context.succeed();
-                    });
+                    streamSpecificStatus.push(okStatus);
                 }
+                // make api call to send status ok
+                collector.sendStatus(streamSpecificStatus, () => {
+                    return context.succeed();
+                });
             }
             const checkin = Object.assign(
                 collector.getProperties(), checkinParts[0], checkinParts[1]
@@ -553,7 +555,8 @@ class AlAwsCollector {
                 if (!status || !collector.registered) {
                     return asyncCallback(null);
                 } else {
-                    zlib.deflate(JSON.stringify([status]), (compressionErr, compressed) => {
+                    let collectorStatus = Array.isArray(status) ? status : [status];
+                    zlib.deflate(JSON.stringify(collectorStatus), (compressionErr, compressed) => {
                         if (compressionErr) {
                             return asyncCallback(compressionErr);
                         } else {
