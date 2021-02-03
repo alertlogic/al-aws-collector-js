@@ -193,7 +193,7 @@ class AlAwsCollector {
             return context.succeed();
         }
     }
-    prepareHealthyStatus(collectionType, streamName = 'none') {
+    prepareHealthyStatus(streamName = 'none', collectionType) {
         return {
             stream_name: streamName,
             status_type: 'ok',
@@ -413,7 +413,7 @@ class AlAwsCollector {
                 let streamSpecificStatus = [];
                 if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
                     collectorStreams.map(streamType => {
-                        let okStatus = collector.prepareHealthyStatus(`${collector._applicationId}_${streamType}`);
+                        let okStatus = collector.prepareHealthyStatus('none', `${collector._applicationId}_${streamType}`);
                         streamSpecificStatus.push(okStatus);
                     });
                 } else {
