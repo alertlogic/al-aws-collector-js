@@ -185,7 +185,7 @@ class AlAwsCollector {
                         util.inspect(error);
             }
             // post stream specific error
-            const status = streamType ? this.prepareErrorStatus(errorString,'none' , streamType) : this.prepareErrorStatus(errorString);
+            const status = streamType ? this.prepareErrorStatus(errorString, 'none', streamType) : this.prepareErrorStatus(errorString);
             this.sendStatus(status, () => {
                 context.fail(errorString);
             });
@@ -193,7 +193,7 @@ class AlAwsCollector {
             return context.succeed();
         }
     }
-    prepareHealthyStatus(streamType, streamName = 'none') {
+    prepareHealthyStatus(collectionType, streamName = 'none') {
         return {
             stream_name: streamName,
             status_type: 'ok',
@@ -202,7 +202,7 @@ class AlAwsCollector {
             host_uuid: this._collectorId,
             data: [],
             agent_type: this._collectorType,
-            collection_type:  streamType ? streamType : this._ingestType,
+            collection_type: collectionType ? collectionType : this._ingestType,
             timestamp: moment().unix()
         };
     }

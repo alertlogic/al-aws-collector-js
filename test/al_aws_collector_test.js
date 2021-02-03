@@ -362,8 +362,8 @@ describe('al_aws_collector tests', function() {
                     return resolve(collector.handleEvent(testEvent));
                 });
                 promise.then((result) => {
-                    sinon.assert.calledOnce(prepareHealthyStatusSpy,0);
-                    sinon.assert.calledOnce(sendStatusSpy,0);
+                    sinon.assert.notCalled(prepareHealthyStatusSpy);
+                    sinon.assert.notCalled(sendStatusSpy);
                 });
             });
         });
@@ -1182,7 +1182,7 @@ describe('al_aws_collector error tests', function() {
     it('checkin error', function(done) {
         AlAwsCollector.load().then(function(creds) {
             var collector = new AlAwsCollector(
-                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], [],[]);
+                context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
             collector.checkin(function(error) {
                 assert.equal(error, 'post error');
                 done();
