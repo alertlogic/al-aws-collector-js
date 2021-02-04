@@ -80,7 +80,7 @@ function getDecryptedCredentials(callback) {
  * @param {function} formatFun - callback formatting function
  * @param {Array.<function>} healthCheckFuns - list of custom health check functions (can be just empty, so only common are applied)
  * @param {Array.<function>} statsFuns - list of custom stats functions (can be just empty, so only common are applied)
- *
+ * @param {Array} streams - List of stream from collector
  */
 class AlAwsCollector {
     static get IngestTypes() {
@@ -104,7 +104,7 @@ class AlAwsCollector {
     }
     
     constructor(context, collectorType, ingestType, version, aimsCreds,
-            formatFun, healthCheckFuns, statsFuns) {
+            formatFun, healthCheckFuns, statsFuns, streams = []) {
         this._invokeContext = context;
         this._arn = context.invokedFunctionArn;
         this._awsAccountId = m_alAws.arnToAccId(context.invokedFunctionArn);
@@ -128,6 +128,7 @@ class AlAwsCollector {
         this._collectorId = process.env.collector_id;
         this._stackName = process.env.stack_name;
         this._applicationId = process.env.al_application_id;
+        this._streams = streams;
     }
     
     set context (context) {
@@ -159,7 +160,15 @@ class AlAwsCollector {
         return this._collectorId;
     }
     
-    done(error) {
+    set streams (streams) {
+        this._streams = streams;
+    }
+    get streams () {
+        return this._streams;
+    }
+
+
+    done(error , streamType) {
         let context = this._invokeContext;
         if (error) {
             // The lambda context tries to stringify errors, 
@@ -175,13 +184,27 @@ class AlAwsCollector {
                         // when all else fails, stringify it the gross way with inspect
                         util.inspect(error);
             }
-            const status = this.prepareErrorStatus(errorString);
+            // post stream specific error
+            const status = streamType ? this.prepareErrorStatus(errorString, 'none', streamType) : this.prepareErrorStatus(errorString);
             this.sendStatus(status, () => {
                 context.fail(errorString);
             });
         } else {
             return context.succeed();
         }
+    }
+    prepareHealthyStatus(streamName = 'none', collectionType) {
+        return {
+            stream_name: streamName,
+            status_type: 'ok',
+            stream_type: 'status',
+            message_type: 'collector_status',
+            host_uuid: this._collectorId,
+            data: [],
+            agent_type: this._collectorType,
+            collection_type: collectionType ? collectionType : this._ingestType,
+            timestamp: moment().unix()
+        };
     }
     
     prepareErrorStatus(errorString, streamName = 'none', collectionType, errorCode) {
@@ -206,6 +229,7 @@ class AlAwsCollector {
             timestamp: moment().unix()
         };
     }
+
     
     getProperties() {
         return {
@@ -378,6 +402,29 @@ class AlAwsCollector {
             }
         ],
         function(err, checkinParts) {
+
+            const invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints ? checkinParts[1].statistics[0].Datapoints : checkinParts[1].statistics;
+            const errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics ;
+            const collectorStreams = collector._streams;
+
+            if (checkinParts[0].status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0
+                && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
+
+                let streamSpecificStatus = [];
+                if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
+                    collectorStreams.map(streamType => {
+                        let okStatus = collector.prepareHealthyStatus('none', `${collector._applicationId}_${streamType}`);
+                        streamSpecificStatus.push(okStatus);
+                    });
+                } else {
+                    let okStatus = collector.prepareHealthyStatus();
+                    streamSpecificStatus.push(okStatus);
+                }
+                // make api call to send status ok
+                collector.sendStatus(streamSpecificStatus, () => {
+                    return context.succeed();
+                });
+            }
             const checkin = Object.assign(
                 collector.getProperties(), checkinParts[0], checkinParts[1]
             );
@@ -508,7 +555,8 @@ class AlAwsCollector {
                 if (!status || !collector.registered) {
                     return asyncCallback(null);
                 } else {
-                    zlib.deflate(JSON.stringify([status]), (compressionErr, compressed) => {
+                    let collectorStatus = Array.isArray(status) ? status : [status];
+                    zlib.deflate(JSON.stringify(collectorStatus), (compressionErr, compressed) => {
                         if (compressionErr) {
                             return asyncCallback(compressionErr);
                         } else {
