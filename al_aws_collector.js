@@ -796,6 +796,21 @@ class AlAwsCollector {
         }
     }
     
+    /**
+     * To handle async event 
+     * @param {*} event 
+     */
+    handleEventAsync(event) {
+        return new Promise((resolve, reject) => {
+            this.handleEvent(event, (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data);
+                }
+            })
+        });
+    }
     _applyConfigChanges(newValues, config, callback) {
         var newConfig = {};
         Object.assign(newConfig, config);
