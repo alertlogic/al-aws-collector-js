@@ -725,7 +725,7 @@ class AlAwsCollector {
             appliance_id: '',
             source_type: this._collectorType,
             source_id: this._collectorId,
-            host_uuid: this._collectorId,
+            host_id: this._collectorId,
             event_count: event_count,
             byte_count: byte_count,
             timestamp: moment().unix()
