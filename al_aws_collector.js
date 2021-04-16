@@ -662,7 +662,76 @@ class AlAwsCollector {
                 return callback(`AWSC0005 Unknown Alertlogic ingestion type: ${ingestType}`);
         }
     }
-    
+    sendStats(stats, callback) {
+        var collector = this;
+        async.waterfall([
+            (asyncCallback) => {
+                const {
+                    azcollect_api,
+                    ingest_api
+                } = process.env;
+                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
+
+
+                    collector.updateEndpoints((err, newConfig) => {
+                        if (err) {
+                            console.warn('AWSC0015 Error updating endpoints', err);
+                        } else {
+                            // reassign env vars because the config change occurs in the same run in sending data.
+                            const {
+                                Environment: {
+                                    Variables
+                                }
+                            } = newConfig;
+                            Object.assign(process.env, Variables);
+                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
+                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
+                        }
+                        asyncCallback(null);
+                    });
+                } else {
+                    asyncCallback(null);
+                }
+            },
+            (asyncCallback) => {
+                if (!stats) {
+                    return asyncCallback(null);
+                }
+                else {
+                    let lmcStats = Array.isArray(stats) ? stats : [stats];
+                    zlib.deflate(JSON.stringify(lmcStats), (compressionErr, compressed) => {
+                        if (compressionErr) {
+                            return asyncCallback(compressionErr);
+                        } else {
+                            collector._ingestc.sendLmcstats(compressed)
+                                .then(resp => {
+                                    return asyncCallback(null, resp);
+                                })
+                                .catch(exception => {
+                                    console.warn('AWSC0013 Collector lmc stats send failed: ', exception);
+                                    return asyncCallback(exception);
+                                });
+                        }
+                    });
+                }
+            }
+        ],
+            callback);
+    }
+
+    prepareLmcStats(event_count, byte_count) {
+        return {
+            inst_type: 'collector',
+            appliance_id: '',
+            source_type: this._collectorType,
+            source_id: this._collectorId,
+            host_uuid: this._collectorId,
+            event_count: event_count,
+            byte_count: byte_count,
+            timestamp: moment().unix()
+        };
+    } 
+
     process(event, callback) {
         const context = this._invokeContext;
         var collector = this;
@@ -694,7 +763,19 @@ class AlAwsCollector {
                 if (err) {
                     return callback(err);
                 } else {
-                    return collector.send(payload, false, callback);
+                    // Send the lmc stats to ingest when ingest type is logmsgs
+                    collector.send(payload, false, (err, res) => {
+                        if (err) {
+                            return callback(err);
+                        }
+                        else {
+                            if (collector._ingestType == AlAwsCollector.IngestTypes.LOGMSGS) {
+                                const stats = collector.prepareLmcStats(messages.length, payload.byteLength);
+                                return collector.sendStats(stats, callback);
+                            }
+                            else return callback(null, res);
+                        }
+                    });
                 }
             });
         } else {
