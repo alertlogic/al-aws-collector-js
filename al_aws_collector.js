@@ -87,7 +87,8 @@ class AlAwsCollector {
         return {
             SECMSGS : 'secmsgs',
             VPCFLOW : 'vpcflow',
-            LOGMSGS : 'logmsgs'
+            LOGMSGS : 'logmsgs',
+            LMCSTATS: 'lmcstats'
         }
     };
     
@@ -576,7 +577,7 @@ class AlAwsCollector {
             callback);
     }
     
-    send(data, compress = true, callback) {
+    send(data, compress = true, ingestType, callback) {
         var collector = this;
         async.waterfall([
             (asyncCallback) => {
@@ -616,20 +617,20 @@ class AlAwsCollector {
                         if (compressionErr) {
                             return asyncCallback(compressionErr);
                         } else {
-                            return collector._send(compressed, asyncCallback);
+                            return collector._send(compressed, ingestType, asyncCallback);
                         }
                     });
                 } else {
-                    return collector._send(data, asyncCallback);
+                    return collector._send(data, ingestType, asyncCallback);
                 }
             }
         ],
             callback);
     }
     
-    _send(data, callback) {
+    _send(data, ingestType, callback) {
         var collector = this;
-        var ingestType = collector._ingestType;
+        var ingestType = ingestType ? ingestType : collector._ingestType;
         switch (ingestType) {
             case AlAwsCollector.IngestTypes.SECMSGS:
                 collector._ingestc.sendSecmsgs(data)
@@ -658,65 +659,18 @@ class AlAwsCollector {
                     return callback(exception);
                 });
                 break;
+            case AlAwsCollector.IngestTypes.LMCSTATS:
+                collector._ingestc.sendLmcstats(data)
+                .then(resp => {
+                    return callback(null, resp);
+                })
+                .catch(exception => {
+                    return callback(exception);
+                });
+                break;
             default:
                 return callback(`AWSC0005 Unknown Alertlogic ingestion type: ${ingestType}`);
         }
-    }
-    sendStats(stats, callback) {
-        var collector = this;
-        async.waterfall([
-            (asyncCallback) => {
-                const {
-                    azcollect_api,
-                    ingest_api
-                } = process.env;
-                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
-
-
-                    collector.updateEndpoints((err, newConfig) => {
-                        if (err) {
-                            console.warn('AWSC0015 Error updating endpoints', err);
-                        } else {
-                            // reassign env vars because the config change occurs in the same run in sending data.
-                            const {
-                                Environment: {
-                                    Variables
-                                }
-                            } = newConfig;
-                            Object.assign(process.env, Variables);
-                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
-                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
-                        }
-                        asyncCallback(null);
-                    });
-                } else {
-                    asyncCallback(null);
-                }
-            },
-            (asyncCallback) => {
-                if (!stats) {
-                    return asyncCallback(null);
-                }
-                else {
-                    let lmcStats = Array.isArray(stats) ? stats : [stats];
-                    zlib.deflate(JSON.stringify(lmcStats), (compressionErr, compressed) => {
-                        if (compressionErr) {
-                            return asyncCallback(compressionErr);
-                        } else {
-                            collector._ingestc.sendLmcstats(compressed)
-                                .then(resp => {
-                                    return asyncCallback(null, resp);
-                                })
-                                .catch(exception => {
-                                    console.warn('AWSC0013 Collector lmc stats send failed: ', exception);
-                                    return asyncCallback(exception);
-                                });
-                        }
-                    });
-                }
-            }
-        ],
-            callback);
     }
 
     prepareLmcStats(event_count, byte_count) {
@@ -728,6 +682,7 @@ class AlAwsCollector {
             host_id: this._collectorId,
             event_count: event_count,
             byte_count: byte_count,
+            application_id: this._applicationId,
             timestamp: moment().unix()
         };
     } 
@@ -744,13 +699,13 @@ class AlAwsCollector {
                     asyncCallback = compress;
                     compress = true;
                 } 
-                collector.send(formattedData, compress, asyncCallback);
+                collector.send(formattedData, compress, collector._ingestType, asyncCallback);
             }
         ],
         callback);
     }
     
-    processLog(messages, formatFun, hostmetaElems, callback) {
+    processLog(messages, formatFun, hostmetaElems, ingestType = '', callback) {
         if(arguments.length === 3 && typeof hostmetaElems === 'function'){
             callback = hostmetaElems;
             hostmetaElems = this._defaultHostmetaElems();
@@ -763,15 +718,15 @@ class AlAwsCollector {
                 if (err) {
                     return callback(err);
                 } else {
-                    // Send the lmc stats to ingest when ingest type is logmsgs
-                    collector.send(payload, false, (err, res) => {
+                    // send the lmc stats if ingest type is logmsgs
+                    collector.send(payload, false, ingestType, (err, res) => {
                         if (err) {
                             return callback(err);
                         }
                         else {
                             if (collector._ingestType == AlAwsCollector.IngestTypes.LOGMSGS) {
                                 const stats = collector.prepareLmcStats(messages.length, payload.byteLength);
-                                return collector.sendStats(stats, callback);
+                                return collector.send(JSON.stringify([stats]), true, 'lmcstats', callback);
                             }
                             else return callback(null, res);
                         }

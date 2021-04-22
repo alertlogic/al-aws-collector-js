@@ -489,6 +489,7 @@ describe('al_aws_collector tests', function() {
         var ingestCVpcFlowStub;
         var ingestCLogmsgsStub;
         var ingestCAgentstatusStub;
+        var ingestCLmcStatsStub;
         
         beforeEach(function() {
             ingestCSecmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendSecmsgs').callsFake(
@@ -518,6 +519,13 @@ describe('al_aws_collector tests', function() {
                             resolve(null);
                         });
                     });
+
+            ingestCLmcStatsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLmcstats').callsFake(
+                function fakeFn(data, callback) {
+                    return new Promise(function (resolve, reject) {
+                        resolve(null);
+                    });
+                });
         });
         
         afterEach(function() {
@@ -525,6 +533,7 @@ describe('al_aws_collector tests', function() {
             ingestCVpcFlowStub.restore();
             ingestCLogmsgsStub.restore();
             ingestCAgentstatusStub.restore();
+            ingestCLmcStatsStub.restore();
         });
 
         it('dont send if data is falsey', function(done) {
@@ -532,7 +541,7 @@ describe('al_aws_collector tests', function() {
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
                 var data = '';
-                collector.send(data, true, function(error) {
+                collector.send(data, true, AlAwsCollector.IngestTypes.SECMSGS, function(error) {
                     assert.ifError(error);
                     sinon.assert.notCalled(ingestCSecmsgsStub);
                     done();
@@ -545,7 +554,7 @@ describe('al_aws_collector tests', function() {
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds);
                 var data = 'some-data';
-                collector.send(data, true, function(error) {
+                collector.send(data, true,AlAwsCollector.IngestTypes.SECMSGS, function(error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCSecmsgsStub);
                     zlib.deflate(data, function(compressionErr, compressed) {
@@ -562,7 +571,7 @@ describe('al_aws_collector tests', function() {
                 var collector = new AlAwsCollector(
                     context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
                 var data = 'some-data';
-                collector.send(data, false, function(error) {
+                collector.send(data, false, '', function(error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCLogmsgsStub);
                     sinon.assert.calledWith(ingestCLogmsgsStub, data);
@@ -582,7 +591,7 @@ describe('al_aws_collector tests', function() {
                     context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
                 var data = 'some-data';
                 let spy = sinon.spy(collector, "updateEndpoints");
-                collector.send(data, false, function (error) {
+                collector.send(data, false,'',function (error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCLogmsgsStub);
                     sinon.assert.calledWith(ingestCLogmsgsStub, data);
@@ -603,12 +612,29 @@ describe('al_aws_collector tests', function() {
                 var collector = new AlAwsCollector(
                     context, 'cwe', AlAwsCollector.IngestTypes.VPCFLOW, '1.0.0', creds);
                 var data = 'some-data';
-                collector.send(data, true, function(error) {
+                collector.send(data, true,AlAwsCollector.IngestTypes.VPCFLOW,function(error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCVpcFlowStub);
                     zlib.deflate(data, function(compressionErr, compressed) {
                         assert.ifError(compressionErr);
                         sinon.assert.calledWith(ingestCVpcFlowStub, compressed);
+                        done();
+                    });
+                });
+            });
+        });
+
+        it('send lmcstats success', function (done) {
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'paws', AlAwsCollector.IngestTypes.LMCSTATS, '1.0.0', creds);
+                var data = 'some-data';
+                collector.send(data, true, AlAwsCollector.IngestTypes.LMCSTATS, function (error) {
+                    assert.ifError(error);
+                    sinon.assert.calledOnce(ingestCLmcStatsStub);
+                    zlib.deflate(data, function (compressionErr, compressed) {
+                        assert.ifError(compressionErr);
+                        sinon.assert.calledWith(ingestCLmcStatsStub, compressed);
                         done();
                     });
                 });
@@ -620,7 +646,7 @@ describe('al_aws_collector tests', function() {
         var sendStub;
         before(function() {
             sendStub = sinon.stub(AlAwsCollector.prototype, 'send').callsFake(
-                function fakeFn(data, compress, callback) {
+                function fakeFn(data, compress, ingestType, callback) {
                     return callback(null, null);
                 });
         });
