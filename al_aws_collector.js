@@ -87,7 +87,8 @@ class AlAwsCollector {
         return {
             SECMSGS : 'secmsgs',
             VPCFLOW : 'vpcflow',
-            LOGMSGS : 'logmsgs'
+            LOGMSGS : 'logmsgs',
+            LMCSTATS: 'lmcstats'
         }
     };
     
@@ -576,7 +577,7 @@ class AlAwsCollector {
             callback);
     }
     
-    send(data, compress = true, callback) {
+    send(data, compress = true, ingestType, callback) {
         var collector = this;
         async.waterfall([
             (asyncCallback) => {
@@ -616,20 +617,20 @@ class AlAwsCollector {
                         if (compressionErr) {
                             return asyncCallback(compressionErr);
                         } else {
-                            return collector._send(compressed, asyncCallback);
+                            return collector._send(compressed, ingestType, asyncCallback);
                         }
                     });
                 } else {
-                    return collector._send(data, asyncCallback);
+                    return collector._send(data, ingestType, asyncCallback);
                 }
             }
         ],
             callback);
     }
     
-    _send(data, callback) {
+    _send(data, ingestType, callback) {
         var collector = this;
-        var ingestType = collector._ingestType;
+        var ingestType = ingestType ? ingestType : collector._ingestType;
         switch (ingestType) {
             case AlAwsCollector.IngestTypes.SECMSGS:
                 collector._ingestc.sendSecmsgs(data)
@@ -658,6 +659,15 @@ class AlAwsCollector {
                     return callback(exception);
                 });
                 break;
+            case AlAwsCollector.IngestTypes.LMCSTATS:
+                collector._ingestc.sendLmcstats(data)
+                .then(resp => {
+                    return callback(null, resp);
+                })
+                .catch(exception => {
+                    return callback(exception);
+                });
+                break;
             default:
                 return callback(`AWSC0005 Unknown Alertlogic ingestion type: ${ingestType}`);
         }
@@ -675,13 +685,13 @@ class AlAwsCollector {
                     asyncCallback = compress;
                     compress = true;
                 } 
-                collector.send(formattedData, compress, asyncCallback);
+                collector.send(formattedData, compress, collector._ingestType, asyncCallback);
             }
         ],
         callback);
     }
     
-    processLog(messages, formatFun, hostmetaElems, callback) {
+    processLog(messages, formatFun, hostmetaElems, ingestType = '', callback) {
         if(arguments.length === 3 && typeof hostmetaElems === 'function'){
             callback = hostmetaElems;
             hostmetaElems = this._defaultHostmetaElems();
@@ -694,7 +704,7 @@ class AlAwsCollector {
                 if (err) {
                     return callback(err);
                 } else {
-                    return collector.send(payload, false, callback);
+                    return collector.send(payload, false, ingestType,  callback);
                 }
             });
         } else {
