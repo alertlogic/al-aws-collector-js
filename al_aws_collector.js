@@ -705,7 +705,7 @@ class AlAwsCollector {
         callback);
     }
     
-    processLog(messages, formatFun, hostmetaElems, ingestType = '', callback) {
+    processLog(messages, formatFun, hostmetaElems, callback) {
         if(arguments.length === 3 && typeof hostmetaElems === 'function'){
             callback = hostmetaElems;
             hostmetaElems = this._defaultHostmetaElems();
@@ -719,16 +719,13 @@ class AlAwsCollector {
                     return callback(err);
                 } else {
                     // send the lmc stats if ingest type is logmsgs
-                    collector.send(payload, false, ingestType, (err, res) => {
+                    collector.send(payload, false, AlAwsCollector.IngestTypes.LOGMSGS, (err, res) => {
                         if (err) {
                             return callback(err);
                         }
                         else {
-                            if (collector._ingestType == AlAwsCollector.IngestTypes.LOGMSGS) {
-                                const stats = collector.prepareLmcStats(messages.length, payload.byteLength);
-                                return collector.send(JSON.stringify([stats]), true, 'lmcstats', callback);
-                            }
-                            else return callback(null, res);
+                            const stats = collector.prepareLmcStats(messages.length, JSON.stringify(messages).length);
+                            return collector.send(JSON.stringify([stats]), true, AlAwsCollector.IngestTypes.LMCSTATS, callback);
                         }
                     });
                 }
