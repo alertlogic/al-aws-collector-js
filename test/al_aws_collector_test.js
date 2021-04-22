@@ -646,7 +646,7 @@ describe('al_aws_collector tests', function() {
         var sendStub;
         before(function() {
             sendStub = sinon.stub(AlAwsCollector.prototype, 'send').callsFake(
-                function fakeFn(data, compress,ingestType,callback) {
+                function fakeFn(data, compress, ingestType, callback) {
                     return callback(null, null);
                 });
         });

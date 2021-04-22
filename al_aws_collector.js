@@ -691,7 +691,7 @@ class AlAwsCollector {
         callback);
     }
     
-    processLog(messages, formatFun, hostmetaElems, injestType = '', callback) {
+    processLog(messages, formatFun, hostmetaElems, ingestType = '', callback) {
         if(arguments.length === 3 && typeof hostmetaElems === 'function'){
             callback = hostmetaElems;
             hostmetaElems = this._defaultHostmetaElems();
@@ -704,7 +704,7 @@ class AlAwsCollector {
                 if (err) {
                     return callback(err);
                 } else {
-                    return collector.send(payload, false, injestType,  callback);
+                    return collector.send(payload, false, ingestType,  callback);
                 }
             });
         } else {
