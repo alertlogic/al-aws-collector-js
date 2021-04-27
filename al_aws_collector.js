@@ -714,20 +714,20 @@ class AlAwsCollector {
         
         if (messages && messages.length > 0) {
             m_alCollector.AlLog.buildPayload(
-                    collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, function(err, payload){
+                    collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, function(err, payloadObj){
                 if (err) {
                     return callback(err);
                 } else {
                     // send the lmc stats if ingest type is logmsgs
-                    collector.send(payload, false, AlAwsCollector.IngestTypes.LOGMSGS, (err, res) => {
-                        if (err) {
-                            return callback(err);
+                    async.waterfall([
+                        function (asyncCallback) {
+                            return collector.send(payloadObj.payload, false, AlAwsCollector.IngestTypes.LOGMSGS, asyncCallback);
+                        },
+                        function (asyncCallback) {
+                            const stats = collector.prepareLmcStats(payloadObj.raw_count, payloadObj.raw_bytes);
+                            return collector.send(JSON.stringify([stats]), true, AlAwsCollector.IngestTypes.LMCSTATS, asyncCallback);
                         }
-                        else {
-                            const stats = collector.prepareLmcStats(messages.length, JSON.stringify(messages).length);
-                            return collector.send(JSON.stringify([stats]), true, AlAwsCollector.IngestTypes.LMCSTATS, callback);
-                        }
-                    });
+                    ], callback);
                 }
             });
         } else {
