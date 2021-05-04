@@ -147,6 +147,20 @@ var formatFun = function (event, context, callback) {
     return callback(null, event);
 };
 
+var parseLogmsgsFun = function(m) {
+    let messagePayload = {
+      messageTs: 1542138053,
+      priority: 11,
+      progName: 'o365webhook',
+      pid: undefined,
+      message: m,
+      messageType: 'json/azure.o365',
+      messageTypeId: 'AzureActiveDirectory',
+      messageTsUs: undefined
+    };
+    
+    return messagePayload;
+};
 
 describe('al_aws_collector tests', function() {
 
@@ -637,6 +651,19 @@ describe('al_aws_collector tests', function() {
                         sinon.assert.calledWith(ingestCLmcStatsStub, compressed);
                         done();
                     });
+                });
+            });
+        });
+
+        it('processLog send the logmsgs and lmcstats successfully', function () {
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                var data = 'some-data';
+                collector.processLog(data, parseLogmsgsFun, null,  (error) =>{
+                    assert.ifError(error);
+                    sinon.assert.calledOnce(ingestCLogmsgsStub);
+                    sinon.assert.calledOnce(ingestCLmcStatsStub);
                 });
             });
         });
