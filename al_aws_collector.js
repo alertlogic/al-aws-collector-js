@@ -672,7 +672,21 @@ class AlAwsCollector {
                 return callback(`AWSC0005 Unknown Alertlogic ingestion type: ${ingestType}`);
         }
     }
-    
+
+    prepareLmcStats(event_count, byte_count) {
+        return {
+            inst_type: 'collector',
+            appliance_id: '',
+            source_type: this._collectorType,
+            source_id: this._collectorId,
+            host_id: this._collectorId,
+            event_count: event_count,
+            byte_count: byte_count,
+            application_id: this._applicationId,
+            timestamp: moment().unix()
+        };
+    } 
+
     process(event, callback) {
         const context = this._invokeContext;
         var collector = this;
@@ -691,7 +705,7 @@ class AlAwsCollector {
         callback);
     }
     
-    processLog(messages, formatFun, hostmetaElems, ingestType = '', callback) {
+    processLog(messages, formatFun, hostmetaElems, callback) {
         if(arguments.length === 3 && typeof hostmetaElems === 'function'){
             callback = hostmetaElems;
             hostmetaElems = this._defaultHostmetaElems();
@@ -700,11 +714,20 @@ class AlAwsCollector {
         
         if (messages && messages.length > 0) {
             m_alCollector.AlLog.buildPayload(
-                    collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, function(err, payload){
+                    collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, function(err, payloadObj){
                 if (err) {
                     return callback(err);
                 } else {
-                    return collector.send(payload, false, ingestType,  callback);
+                    // send the lmc stats if ingest type is logmsgs
+                    async.waterfall([
+                        function (asyncCallback) {
+                            return collector.send(payloadObj.payload, false, AlAwsCollector.IngestTypes.LOGMSGS, asyncCallback);
+                        },
+                        function (asyncCallback) {
+                            const stats = collector.prepareLmcStats(payloadObj.raw_count, payloadObj.raw_bytes);
+                            return collector.send(JSON.stringify([stats]), true, AlAwsCollector.IngestTypes.LMCSTATS, asyncCallback);
+                        }
+                    ], callback);
                 }
             });
         } else {
