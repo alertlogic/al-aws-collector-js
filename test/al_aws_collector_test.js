@@ -655,7 +655,7 @@ describe('al_aws_collector tests', function() {
             });
         });
 
-        it('processLog send the logmsgs and lmcstats successfully', function () {
+        it('processLog send the logmsgs and lmcstats successfully', function (done) {
             AlAwsCollector.load().then(function (creds) {
                 var collector = new AlAwsCollector(
                     context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
@@ -664,6 +664,7 @@ describe('al_aws_collector tests', function() {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCLogmsgsStub);
                     sinon.assert.calledOnce(ingestCLmcStatsStub);
+                    done();
                 });
             });
         });

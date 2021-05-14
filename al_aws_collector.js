@@ -713,23 +713,23 @@ class AlAwsCollector {
         var collector = this;
         
         if (messages && messages.length > 0) {
-            m_alCollector.AlLog.buildPayload(
-                    collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, function(err, payloadObj){
-                if (err) {
-                    return callback(err);
-                } else {
-                    // send the lmc stats if ingest type is logmsgs
-                    async.waterfall([
-                        function (asyncCallback) {
-                            return collector.send(payloadObj.payload, false, AlAwsCollector.IngestTypes.LOGMSGS, asyncCallback);
-                        },
-                        function (asyncCallback) {
-                            const stats = collector.prepareLmcStats(payloadObj.raw_count, payloadObj.raw_bytes);
-                            return collector.send(JSON.stringify([stats]), true, AlAwsCollector.IngestTypes.LMCSTATS, asyncCallback);
-                        }
-                    ], callback);
+            async.waterfall([
+                function (asyncCallback) {
+                    m_alCollector.AlLog.buildPayload(
+                        collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, (err, payloadObj) => {
+                            return asyncCallback(err, payloadObj);
+                        });
+                },
+                function (payloadObj, asyncCallback) {
+                    collector.send(payloadObj.payload, false, AlAwsCollector.IngestTypes.LOGMSGS, (err, res) => {
+                        return asyncCallback(err, payloadObj);
+                    });
+                },
+                function (payloadObj, asyncCallback) {
+                    const stats = collector.prepareLmcStats(payloadObj.raw_count, payloadObj.raw_bytes);
+                    return collector.send(JSON.stringify([stats]), true, AlAwsCollector.IngestTypes.LMCSTATS, asyncCallback);
                 }
-            });
+            ], callback);
         } else {
             return callback(null, {});
         }
