@@ -41,7 +41,8 @@ const NOUPDATE_CONFIG_PARAMS = [
     'StateReasonCode',
     'LastUpdateStatus',
     'LastUpdateStatusReason',
-    'LastUpdateStatusReasonCode'
+    'LastUpdateStatusReasonCode',
+    'PackageType'
 ];
 
 function getDecryptedCredentials(callback) {
