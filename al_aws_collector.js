@@ -170,7 +170,7 @@ class AlAwsCollector {
     }
 
 
-    done(error , streamType) {
+    done(error , streamType, sendStatus = true) {
         let context = this._invokeContext;
         if (error) {
             // The lambda context tries to stringify errors, 
@@ -188,9 +188,13 @@ class AlAwsCollector {
             }
             // post stream specific error
             const status = streamType ? this.prepareErrorStatus(errorString, 'none', streamType) : this.prepareErrorStatus(errorString);
-            this.sendStatus(status, () => {
+            if (sendStatus) {
+                this.sendStatus(status, () => {
+                    context.fail(errorString);
+                });
+            } else {
                 context.fail(errorString);
-            });
+            }
         } else {
             return context.succeed();
         }
