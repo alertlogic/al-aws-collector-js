@@ -668,6 +668,44 @@ describe('al_aws_collector tests', function() {
                 });
             });
         });
+        
+        it('send error status successfully', function (done) {
+            var mockCtx = {
+                    invokedFunctionArn: colMock.FUNCTION_ARN,
+                    functionName: colMock.FUNCTION_NAME,
+                    fail: function (error) {
+                        sinon.assert.calledOnce(ingestCAgentstatusStub);
+                        done();
+                    },
+                    succeed: function () {
+                        assert.fail();
+                    }
+                };
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                        mockCtx, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                collector.done({message : 'some_error'}, null, true);
+            });
+        });
+        
+        it('fail invocation without status send', function (done) {
+            var mockCtx = {
+                    invokedFunctionArn: colMock.FUNCTION_ARN,
+                    functionName: colMock.FUNCTION_NAME,
+                    fail: function (error) {
+                        sinon.assert.notCalled(ingestCAgentstatusStub);
+                        done();
+                    },
+                    succeed: function () {
+                        assert.fail();
+                    }
+                };
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                        mockCtx, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                collector.done({message : 'some_error'}, null, false);
+            });
+        });
     });
     
     describe('mocking send', function() {
