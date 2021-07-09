@@ -1303,5 +1303,25 @@ describe('al_aws_collector error tests', function() {
             collector.handleEvent(testEvent);
         });
     });
+    
+    it('test stringifyError', function(done) {
+        AlAwsCollector.load().then(function(creds) {
+            let ctx = {
+                invokedFunctionArn : colMock.FUNCTION_ARN,
+                fail : function(error) {
+                    assert.fail('Should not be called');
+                },
+                succeed : function() {
+                    assert.fail('Should not be called');
+                }
+            };
+            var collector = new AlAwsCollector(
+                ctx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+            
+            assert.equal(collector.stringifyError('test error'), 'test error');
+            assert.equal(collector.stringifyError({message:'test error message'}), '{"message":"test error message"}');
+            done();
+        });
+    });
 
 });
