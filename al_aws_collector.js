@@ -173,21 +173,9 @@ class AlAwsCollector {
     done(error , streamType, sendStatus = true) {
         let context = this._invokeContext;
         if (error) {
-            // The lambda context tries to stringify errors, 
-            // so we should check if they can be stringified before we pass them to the context
-            let errorString;
-            try{
-                errorString = JSON.stringify(error);
-            }
-            catch (stringifyError){
-                // Can't stringify the whole error, so lets try and get some useful info from it
-                errorString = error.toJSON ? error.toJSON() :
-                    error.message ? error.message :
-                        // when all else fails, stringify it the gross way with inspect
-                        util.inspect(error);
-            }
-            // post stream specific error
-            const status = streamType ? this.prepareErrorStatus(errorString, 'none', streamType) : this.prepareErrorStatus(errorString);
+            let errorString = this.stringifyError(error);
+            // TODO: fix stream name reporting
+            const status = this.prepareErrorStatus(errorString, 'none', streamType);
             if (sendStatus) {
                 this.sendStatus(status, () => {
                     context.fail(errorString);
@@ -236,6 +224,25 @@ class AlAwsCollector {
         };
     }
 
+    stringifyError(error) {
+        // The lambda context tries to stringify errors, 
+        // so we should check if they can be stringified before we pass them to the context
+        if (typeof error === 'string') {
+            return error;
+        } else {
+            try{
+                return JSON.stringify(error);
+            }
+            catch (stringifyError){
+                // Can't stringify the whole error, so lets try and get some useful info from it
+                return error.toJSON ? error.toJSON() :
+                    error.message ? error.message :
+                        // when all else fails, stringify it the gross way with inspect
+                        util.inspect(error);
+            }
+        }
+    }
+    
     
     getProperties() {
         return {
