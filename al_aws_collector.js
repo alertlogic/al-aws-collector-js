@@ -173,7 +173,7 @@ class AlAwsCollector {
     done(error , streamType, sendStatus = true) {
         let context = this._invokeContext;
         if (error) {
-            let errorString = this.stringifyError(error);
+            const errorString = this.stringifyError(error);
             // TODO: fix stream name reporting
             const status = this.prepareErrorStatus(errorString, 'none', streamType);
             if (sendStatus) {
