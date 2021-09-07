@@ -90,6 +90,37 @@ var getLambdaMetrics = function (functionName, metricName, callback) {
     };
     return getMetricStatistics(params, callback);
 };
+/**
+ * 
+ * @param {*} functionName - Lambda function name
+ * @param {*} metricName -Custom metrics name
+ * @param {*} namespace - Custom namespace 
+ * @param {*} customDimesions - Extra dimentions object other than function name if you added while creating the custom metrics
+ * @param {*} callback 
+ * @returns 
+ */
+var getCustomMetrics = function (functionName, metricName, namespace, customDimesions, callback) {
+    let dimensions =
+        [
+            {
+                Name: 'FunctionName',
+                Value: functionName
+            }
+        ]
+    if (customDimesions) {
+        dimensions.push(customDimesions);
+    }
+    var params = {
+        Dimensions: dimensions,
+        MetricName: metricName,
+        Namespace: namespace,
+        Statistics: ['Sum'],
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toISOString(),
+        EndTime: new Date(),
+        Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
+    };
+    return getMetricStatistics(params, callback);
+};
 
 var getKinesisMetrics = function (streamName, metricName, callback) {
     var params = {
@@ -132,5 +163,6 @@ module.exports = {
     getKinesisMetrics : getKinesisMetrics,
 
     // functions which return funs:
-    getAllKinesisMetricsFuns : getAllKinesisMetricsFuns
+    getAllKinesisMetricsFuns : getAllKinesisMetricsFuns,
+    getCustomMetrics: getCustomMetrics,
 };
