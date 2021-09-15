@@ -135,26 +135,6 @@ const CHECKIN_AZCOLLECT_QUERY = {
     }
 };
 
-const CHECKIN_AZCOLLECT_QUERY_WITH_CUSTOM_STATS = {
-    body: {
-        awsAccountId: '123456789012',
-        collectorId: 'collector-id',
-        applicationId: 'app-id',
-        dataType: 'secmsgs',
-        details: [],
-        functionName: 'test-VpcFlowCollectLambdaFunction',
-        region: 'us-east-1',
-        stackName: 'test-stack-01',
-        version: '1.0.0',
-        status: 'ok',
-        statistics:[
-            {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
-            {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
-            {'Label':'PawsClientError','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
-        ]
-    }
-};
-
 const CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR = {
     body: {
         awsAccountId: '123456789012',
@@ -405,7 +385,6 @@ module.exports = {
 
     CHECKIN_URL : CHECKIN_URL,
     CHECKIN_AZCOLLECT_QUERY : CHECKIN_AZCOLLECT_QUERY,
-    CHECKIN_AZCOLLECT_QUERY_WITH_CUSTOM_STATS_ERROR :CHECKIN_AZCOLLECT_QUERY_WITH_CUSTOM_STATS,
     CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR : CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR,
     CF_DESCRIBE_STACKS_RESPONSE : CF_DESCRIBE_STACKS_RESPONSE,
     CHECKIN_ERROR_AZCOLLECT_QUERY : CHECKIN_ERROR_AZCOLLECT_QUERY,

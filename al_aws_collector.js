@@ -417,19 +417,11 @@ class AlAwsCollector {
         function(err, checkinParts) {
 
             const invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints ? checkinParts[1].statistics[0].Datapoints : checkinParts[1].statistics;
-            const lambdaErrorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics;
-            // If no custom metrics send or if no error happened then custom metrics will return empty [], so add sum:0 to not break the condition check.
-            const customErrorStats = checkinParts[1].statistics[2];
-            const customErrorStatsDatapoints = customErrorStats && customErrorStats.Datapoints && customErrorStats.Datapoints.length > 0 ? customErrorStats.Datapoints : [{ Sum: 0 }];
+            const errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics;
             const collectorStreams = collector._streams;
-            /**
-             * If any collector pass the custom error metrics;
-             * It should check Lambda Error metrics and Custom error metrics both and send the status 'ok' to assets if there is no error(i.e. Sum:0).
-             * else it will only check Lambda Error metrics before sending the status 'ok' to assets.
-             */
 
             if (checkinParts[0].status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0
-                && (lambdaErrorStatsDatapoints.length > 0 && lambdaErrorStatsDatapoints[0].Sum === 0 && customErrorStatsDatapoints[0].Sum === 0)) {
+                && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
 
                 let streamSpecificStatus = [];
                 if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
