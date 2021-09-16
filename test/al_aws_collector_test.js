@@ -438,12 +438,6 @@ describe('al_aws_collector tests', function() {
                     return resolve(collector.handleEvent(testEvent));
                 });
                 promise.then((result) => {
-                    sinon.assert.calledOnce(customErrorHealthCheck);
-                    sinon.assert.calledWith(
-                        alserviceStub.post,
-                        colMock.CHECKIN_URL,
-                        colMock.CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR
-                    );
                     sinon.assert.notCalled(prepareHealthyStatusSpy);
                     sinon.assert.notCalled(sendStatusSpy);
                 });
