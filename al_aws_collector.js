@@ -414,46 +414,52 @@ class AlAwsCollector {
                 });
             }
         ],
-        function(err, checkinParts) {
-
+        function (err, checkinParts) {
             const invocationStatsDatapoints = checkinParts[1].statistics[0].Datapoints ? checkinParts[1].statistics[0].Datapoints : checkinParts[1].statistics;
-            const errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics ;
+            const errorStatsDatapoints = checkinParts[1].statistics[1].Datapoints ? checkinParts[1].statistics[1].Datapoints : checkinParts[1].statistics;
             const collectorStreams = collector._streams;
-
-            if (checkinParts[0].status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0
-                && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
-
-                let streamSpecificStatus = [];
-                if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
-                    collectorStreams.map(streamType => {
-                        let okStatus = collector.prepareHealthyStatus('none', `${collector._applicationId}_${streamType}`);
-                        streamSpecificStatus.push(okStatus);
-                    });
-                } else {
-                    let okStatus = collector.prepareHealthyStatus();
-                    streamSpecificStatus.push(okStatus);
+            async.parallel([
+                function (asyncCallback) {
+                    if (checkinParts[0].status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0
+                        && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
+                        let streamSpecificStatus = [];
+                        if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
+                            collectorStreams.map(streamType => {
+                                let okStatus = collector.prepareHealthyStatus('none', `${collector._applicationId}_${streamType}`);
+                                streamSpecificStatus.push(okStatus);
+                            });
+                        } else {
+                            let okStatus = collector.prepareHealthyStatus();
+                            streamSpecificStatus.push(okStatus);
+                        }
+                        // make api call to send status ok
+                        collector.sendStatus(streamSpecificStatus, () => {
+                            return asyncCallback(null);
+                        });
+                    }
+                    else {
+                        return asyncCallback(null);
+                    }
+                },
+                function (asyncCallback) {
+                    const checkin = Object.assign(
+                        collector.getProperties(), checkinParts[0], checkinParts[1]
+                    );
+                    collector._azcollectc.checkin(checkin)
+                        .then(resp => {
+                            if (resp && resp.force_update === true) {
+                                console.info('AWSC0004 Force update');
+                                collector.update(asyncCallback);
+                            }
+                            else {
+                                return asyncCallback(null);
+                            }
+                        })
+                        .catch(exception => {
+                            return asyncCallback(exception);
+                        });
                 }
-                // make api call to send status ok
-                collector.sendStatus(streamSpecificStatus, () => {
-                    return context.succeed();
-                });
-            }
-            const checkin = Object.assign(
-                collector.getProperties(), checkinParts[0], checkinParts[1]
-            );
-            collector._azcollectc.checkin(checkin)
-            .then(resp => {
-                if(resp && resp.force_update === true){
-                    console.info('AWSC0004 Force update');
-                    return collector.update(callback);
-                }
-                else{
-                    return callback(null);
-                }
-            })
-            .catch(exception => {
-                return callback(exception);
-            });
+            ], callback);
         });
     }
     

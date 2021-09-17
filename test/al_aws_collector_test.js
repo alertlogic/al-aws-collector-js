@@ -11,7 +11,7 @@ const m_healthChecks = require('../health_checks');
 var AWS = require('aws-sdk-mock');
 const colMock = require('./collector_mock');
 const zlib = require('zlib');
-
+const AlAwsStatsTempl = require('../statistics_templates');
 const context = {
     invokedFunctionArn : colMock.FUNCTION_ARN
 };
@@ -399,6 +399,50 @@ describe('al_aws_collector tests', function() {
             });
         });
 
+        it('Do not post ok status if cheking lambda errors metric and custom health check errors show errors', function (done) {
+            var spyCustomMetrics = sinon.stub(AlAwsStatsTempl, 'getCustomMetrics').callsFake(
+                function fakeFn(functionName, metricName, namespace, customDimesions, callback) {
+                    return callback(null,{ 'Label': 'PawsClientError', 'Datapoints': [{ 'Timestamp': '2017-11-21T16:40:00Z', 'Sum': 1, 'Unit': 'Count' }] });
+                });
+
+            var customErrorHealthCheck = function (callback) {
+                return AlAwsStatsTempl.getCustomMetrics(colMock.FUNCTION_NAME, 'PawsClientError', 'PawsCollectors', null, (err, res) => {
+                    if (res.Datapoints[0].sum > 0) {
+                        callback(m_healthChecks.errorMsg('MYCODE', 'error message'));
+                    }
+                    callback(null);
+                });
+            };
+            var mockContextCheckin = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
+                functionName: colMock.FUNCTION_NAME,
+                fail: false,
+                succeed: function () {
+                    sinon.assert.calledOnce(spyCustomMetrics);
+                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
+                    spyCustomMetrics.restore();
+                    done();
+                }
+            };
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    mockContextCheckin, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, undefined, [customErrorHealthCheck], [], []);
+                const testEvent = {
+                    RequestType: 'ScheduledEvent',
+                    Type: 'Checkin'
+                };
+                const prepareHealthyStatusSpy = sinon.spy(collector, 'prepareHealthyStatus');
+                const sendStatusSpy = sinon.spy(collector, 'sendStatus');
+
+                let promise = new Promise(function (resolve, reject) {
+                    return resolve(collector.handleEvent(testEvent));
+                });
+                promise.then((result) => {
+                    sinon.assert.notCalled(prepareHealthyStatusSpy);
+                    sinon.assert.notCalled(sendStatusSpy);
+                });
+            });
+        });
         it('checkin with custom check error', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var spyHealthCheck = sinon.spy(function(callback) {
