@@ -147,7 +147,7 @@ const CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR = {
         version: '1.0.0',
         status: 'error',
         error_code: 'MYCODE',
-        details: { error: 'error message' },
+        details: { error: { text: 'error message' } },
         statistics:[
             {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
             {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
@@ -192,7 +192,7 @@ const CHECKIN_ERROR_AZCOLLECT_QUERY = {
         version: '1.0.0',
         status: 'error',
         error_code: 'ALAWS00002',
-        details: { error: 'CF stack has wrong status: FAILED' },
+        details: { error: { text: 'CF stack has wrong status: FAILED' } },
         statistics:[
             {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
             {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}

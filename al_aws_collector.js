@@ -478,7 +478,7 @@ class AlAwsCollector {
                 status = {
                     status: errMsg.status,
                     error_code: errMsg.code,
-                    details: { error: errMsg.details }
+                    details: { error: { text: errMsg.details } }
                 };
             } else {
                 status = {
