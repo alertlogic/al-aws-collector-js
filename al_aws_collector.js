@@ -478,12 +478,12 @@ class AlAwsCollector {
                 status = {
                     status: errMsg.status,
                     error_code: errMsg.code,
-                    details: [errMsg.details]
+                    details: { error: { text: errMsg.details } }
                 };
             } else {
                 status = {
                     status: 'ok',
-                    details: []
+                    details: {}
                 };
             }
             return callback(null, status);

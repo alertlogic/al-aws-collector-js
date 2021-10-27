@@ -122,7 +122,7 @@ const CHECKIN_AZCOLLECT_QUERY = {
         collectorId: 'collector-id',
         applicationId: 'app-id',
         dataType: 'secmsgs',
-        details: [],
+        details: {},
         functionName: 'test-VpcFlowCollectLambdaFunction',
         region: 'us-east-1',
         stackName: 'test-stack-01',
@@ -147,7 +147,7 @@ const CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR = {
         version: '1.0.0',
         status: 'error',
         error_code: 'MYCODE',
-        details: [ 'error message' ],
+        details: { error: { text: 'error message' } },
         statistics:[
             {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
             {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
@@ -192,7 +192,7 @@ const CHECKIN_ERROR_AZCOLLECT_QUERY = {
         version: '1.0.0',
         status: 'error',
         error_code: 'ALAWS00002',
-        details: [ 'CF stack has wrong status: FAILED' ],
+        details: { error: { text: 'CF stack has wrong status: FAILED' } },
         statistics:[
             {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
             {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
