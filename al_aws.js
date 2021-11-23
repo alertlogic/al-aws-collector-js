@@ -4,7 +4,7 @@
  *
  * Helper class for lambda function utility and helper methods.
  *
- * Last message ID: AWSC0104
+ * Last message ID: AWSC0106
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -16,6 +16,13 @@ const async = require('async');
 
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
+const LAMBDA_CONFIG = {
+        maxRetries: 10
+};
+const LAMBDA_UPDATE_RETRY = {
+        times: 10,
+        interval: 1000
+};
 
 var selfUpdate = function (callback) {
     var params = {
@@ -23,7 +30,7 @@ var selfUpdate = function (callback) {
       S3Bucket: process.env.aws_lambda_s3_bucket,
       S3Key: process.env.aws_lambda_zipfile_name
     };
-    var lambda = new AWS.Lambda();
+    var lambda = new AWS.Lambda(LAMBDA_CONFIG);
     console.info('AWSC0100 Performing lambda self-update with params: ', JSON.stringify(params));
     lambda.updateFunctionCode(params, function(err, data) {
         if (err) {
@@ -57,7 +64,7 @@ var getS3ConfigChanges = function(callback) {
 };
 
 var getLambdaConfig = function(callback) {
-    var lambda = new AWS.Lambda();
+    var lambda = new AWS.Lambda(LAMBDA_CONFIG);
     var params = {
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
     };
@@ -66,7 +73,7 @@ var getLambdaConfig = function(callback) {
 };
 
 var updateLambdaConfig = function(config, callback) {
-    var lambda = new AWS.Lambda();
+    var lambda = new AWS.Lambda(LAMBDA_CONFIG);
     lambda.updateFunctionConfiguration(config, callback);
 };
 
@@ -149,19 +156,42 @@ var arnToAccId = function (arn) {
     }
 };
 
-var setEnv = function(vars, callback) {
-    const lambda = new AWS.Lambda();
-
+var waitForFunctionUpdate = function (callback) {
+    let lambda = new AWS.Lambda(LAMBDA_CONFIG);
     const getConfigParams = {
-      FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
+        FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
     };
+    async.retry(LAMBDA_UPDATE_RETRY, function(asyncCallback) {
+        lambda.getFunctionConfiguration(getConfigParams, function(err, config) {
+            if(err) {
+                console.warn('AWSC0105 Error getting function config', err);
+                return asyncCallback(err);
+            } else {
+                if (config.LastUpdateStatus === 'InProgress') {
+                    const inProgressError = {
+                         message: 'Function update is in progress',
+                         code: 409
+                    };
+                    return asyncCallback(inProgressError);
+                } else {
+                    return asyncCallback(null, config);
+                }
+            }
+        });
+    }, callback);
+};
 
-    lambda.getFunctionConfiguration(getConfigParams, (err, config) => {
-        if(err){
+var setEnv = function(vars, callback) {
+    waitForFunctionUpdate(function(err, config) {
+        if(err) {
             console.error('AWSC0104 Error getting function config, environment variables were not updated', err);
             return callback(err);
         }
-        var params = {
+        const lambda = new AWS.Lambda(LAMBDA_CONFIG);
+        const getConfigParams = {
+            FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
+        };
+        const params = {
             FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
             Environment : {
                 Variables : {
@@ -174,6 +204,7 @@ var setEnv = function(vars, callback) {
     });
 };
 
+
 module.exports = {
     selfUpdate : selfUpdate,
     getS3ConfigChanges : getS3ConfigChanges,
@@ -182,6 +213,7 @@ module.exports = {
     arnToName : arnToName,
     arnToAccId : arnToAccId,
     setEnv : setEnv,
+    waitForFunctionUpdate: waitForFunctionUpdate,
     
     //DEPRECATED FUNCTIONS
     //please use statistics_templates.js instead

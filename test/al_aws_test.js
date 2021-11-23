@@ -96,6 +96,125 @@ describe('al_aws Tests', function() {
             });
         });
     });
+    
+    describe('setEnv() function', () => {
+        
+        beforeEach(() => {
+            colMock.initProcessEnv();
+        });
+        
+        afterEach(() => {
+            AWS.restore('Lambda', 'getFunctionConfiguration');
+            AWS.restore('Lambda', 'updateFunctionConfiguration');
+        });
+        
+        it('check env update', (done) => {
+            AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
+                assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
+                const config = {
+                    LastUpdateStatus: 'Success',
+                    Environment: {
+                        Variables: {
+                            test_var: 'test_var'
+                        }
+                    }
+                };
+                return callback(null, config);
+            });
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+                assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
+                return callback(null, params);
+            });
+    
+            const testVars = {
+                ingest_api: 'ingest.api',
+                azcollect_api: 'azcollect.api'
+            };
+            m_alAws.setEnv(testVars, (err, config) => {
+                assert.equal('ingest.api', config.Environment.Variables.ingest_api);
+                assert.equal('azcollect.api', config.Environment.Variables.azcollect_api);
+                assert.equal('test_var', config.Environment.Variables.test_var);
+                done();
+            });
+        });
+        
+        it('check env update with retries', (done) => {
+            const configSuccess = {
+                LastUpdateStatus: 'Success',
+                Environment: {
+                    Variables: {
+                        test_var: 'test_var',
+                        new_var: 'new_var'
+                    }
+                }
+            };
+            const configInProgress = {
+                LastUpdateStatus: 'InProgress',
+                Environment: {
+                    Variables: {
+                        test_var: 'test_var'
+                    }
+                }
+            };
+            let callCount = 0;
+            AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
+                assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
+                if (callCount === 0) {
+                    callCount++;
+                    return callback(null, configInProgress);
+                } else {
+                    return callback(null, configSuccess);
+                }
+            });
+            
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+                assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
+                return callback(null, params);
+            });
+    
+            const testVars = {
+                ingest_api: 'ingest.api',
+                azcollect_api: 'azcollect.api'
+            };
+            m_alAws.setEnv(testVars, (err, config) => {
+                assert.equal('ingest.api', config.Environment.Variables.ingest_api);
+                assert.equal('azcollect.api', config.Environment.Variables.azcollect_api);
+                assert.equal('test_var', config.Environment.Variables.test_var);
+                assert.equal('new_var', config.Environment.Variables.new_var);
+                done();
+            });
+        }).timeout(3000);
+        
+        it('check env update error with retries', (done) => {
+            const configInProgress = {
+                LastUpdateStatus: 'InProgress',
+                Environment: {
+                    Variables: {
+                        test_var: 'test_var'
+                    }
+                }
+            };
+            AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
+                assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
+                return callback(null, configInProgress);
+            });
+            
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+                assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
+                return callback(null, params);
+            });
+    
+            const testVars = {
+                ingest_api: 'ingest.api',
+                azcollect_api: 'azcollect.api'
+            };
+            m_alAws.setEnv(testVars, (err, config) => {
+                assert.equal(409, err.code);
+                assert.equal('Function update is in progress', err.message);
+                done();
+            });
+        }).timeout(20000);
+    });
 });
 
 

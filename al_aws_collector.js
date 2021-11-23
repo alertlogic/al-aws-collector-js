@@ -4,7 +4,7 @@
  *
  * Base class for AWS Lambda based collectors.
  *
- * Last message ID: AWSC0016
+ * Last message ID: AWSC0017
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -286,6 +286,7 @@ class AlAwsCollector {
     registerSync(event, custom) {
         this.register(event, custom, (err) => {
             if(err){
+                console.error('AWSC0017 Collector registration failed.')
                 return response.send(event, this.context, response.FAILED, {Error: err});
             } else {
                 return response.send(event, this.context, response.SUCCESS);
