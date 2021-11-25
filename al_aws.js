@@ -21,7 +21,10 @@ const LAMBDA_CONFIG = {
 };
 const LAMBDA_UPDATE_RETRY = {
         times: 10,
-        interval: 1000
+        // intervals of 200, 400, 800, 1600, 3200, ... ms)
+        interval: function(retryCount) {
+            return Math.max(100 * Math.pow(2, retryCount), 5000);
+        }
 };
 
 var selfUpdate = function (callback) {
