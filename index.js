@@ -12,6 +12,7 @@ module.exports = {
     AlAwsCollector : require('./al_aws_collector'),
     Util : require('./al_aws'),
     Health : require('./health_checks'),
-    Stats : require('./statistics_templates')
+    Stats: require('./statistics_templates'),
+    logger: require('./logger')
 };
 

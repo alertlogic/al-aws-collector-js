@@ -13,6 +13,7 @@
 const AWS = require('aws-sdk');
 const moment = require('moment');
 const async = require('async');
+const logger = require('./logger');
 
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
@@ -34,12 +35,12 @@ var selfUpdate = function (callback) {
       S3Key: process.env.aws_lambda_zipfile_name
     };
     var lambda = new AWS.Lambda(LAMBDA_CONFIG);
-    console.info('AWSC0100 Performing lambda self-update with params: ', JSON.stringify(params));
+    logger.info('AWSC0100 Performing lambda self-update with params: ', JSON.stringify(params));
     lambda.updateFunctionCode(params, function(err, data) {
         if (err) {
-            console.info('AWSC0101 Lambda self-update error: ', err);
+            logger.info('AWSC0101 Lambda self-update error: ', err);
         } else {
-            console.info('AWSC0102 Lambda self-update successful.  Data: ' + JSON.stringify(data));
+            logger.info('AWSC0102 Lambda self-update successful.  Data: ' + JSON.stringify(data));
         }
         return callback(err);
     });
@@ -167,7 +168,7 @@ var waitForFunctionUpdate = function (callback) {
     async.retry(LAMBDA_UPDATE_RETRY, function(asyncCallback) {
         lambda.getFunctionConfiguration(getConfigParams, function(err, config) {
             if(err) {
-                console.warn('AWSC0105 Error getting function config', err);
+                logger.warn('AWSC0105 Error getting function config', err);
                 return asyncCallback(err);
             } else {
                 if (config.LastUpdateStatus === 'InProgress') {
@@ -187,7 +188,7 @@ var waitForFunctionUpdate = function (callback) {
 var setEnv = function(vars, callback) {
     waitForFunctionUpdate(function(err, config) {
         if(err) {
-            console.error('AWSC0104 Error getting function config, environment variables were not updated', err);
+            logger.error('AWSC0104 Error getting function config, environment variables were not updated', err);
             return callback(err);
         }
         const lambda = new AWS.Lambda(LAMBDA_CONFIG);

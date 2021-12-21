@@ -22,6 +22,7 @@ const m_alCollector = require('@alertlogic/al-collector-js');
 const m_alAws = require('./al_aws');
 const m_healthChecks = require('./health_checks');
 const m_alStatsTmpls = require('./statistics_templates');
+const logger = require('./logger');
 
 var AIMS_DECRYPTED_CREDS = null;
 
@@ -286,7 +287,7 @@ class AlAwsCollector {
     registerSync(event, custom) {
         this.register(event, custom, (err) => {
             if(err){
-                console.error('AWSC0017 Collector registration failed.')
+                logger.error('AWSC0017 Collector registration failed.')
                 return response.send(event, this.context, response.FAILED, {Error: err});
             } else {
                 return response.send(event, this.context, response.SUCCESS);
@@ -311,7 +312,7 @@ class AlAwsCollector {
                     // the collector should register even if there is an error in getting the endpoints.
                     this.updateEndpoints((err, newConfig) => {
                         if(err){
-                            console.warn('AWSC0002 Error updating endpoints', err);
+                            logger.warn('AWSC0002 Error updating endpoints', err);
                         } else {
                             // reassign env vars because the config change occurs in the same run in registration.
                             const {
@@ -359,7 +360,7 @@ class AlAwsCollector {
                     // the collector should handle check in even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
                         if (err) {
-                            console.warn('AWSC0014 Error updating endpoints', err);
+                            logger.warn('AWSC0014 Error updating endpoints', err);
                         } else {
                             // reassign env vars because the config change occurs in the same run in handle check in.
                             const {
@@ -449,7 +450,7 @@ class AlAwsCollector {
                     collector._azcollectc.checkin(checkin)
                         .then(resp => {
                             if (resp && resp.force_update === true) {
-                                console.info('AWSC0004 Force update');
+                                logger.info('AWSC0004 Force update');
                                 collector.update(asyncCallback);
                             }
                             else {
@@ -475,7 +476,7 @@ class AlAwsCollector {
         function(errMsg) {
             var status = {};
             if (errMsg) {
-                console.warn('ALAWS00001 Health check failed with',  errMsg);
+                logger.warn('ALAWS00001 Health check failed with',  errMsg);
                 status = {
                     status: errMsg.status,
                     error_code: errMsg.code,
@@ -534,7 +535,7 @@ class AlAwsCollector {
                 return callback(null, resp);
             })
             .catch(exception => {
-                console.warn('AWSC0011 Collector deregistration failed. ', exception);
+                logger.warn('AWSC0011 Collector deregistration failed. ', exception);
                 return callback(exception);
             });
     }
@@ -553,7 +554,7 @@ class AlAwsCollector {
                     // the collector should send status even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
                         if (err) {
-                            console.warn('AWSC0016 Error updating endpoints', err);
+                            logger.warn('AWSC0016 Error updating endpoints', err);
                         } else {
                             // reassign env vars because the config change occurs in the same run in sending status.
                             const {
@@ -585,7 +586,7 @@ class AlAwsCollector {
                                     return asyncCallback(null, resp);
                                 })
                                 .catch(exception => {
-                                    console.warn('AWSC0013 Collector status send failed: ', exception);
+                                    logger.warn('AWSC0013 Collector status send failed: ', exception);
                                     return asyncCallback(exception);
                                 });
                         }
@@ -609,7 +610,7 @@ class AlAwsCollector {
                     // the collector should send data even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
                         if (err) {
-                            console.warn('AWSC0015 Error updating endpoints', err);
+                            logger.warn('AWSC0015 Error updating endpoints', err);
                         } else {
                             // reassign env vars because the config change occurs in the same run in sending data.
                             const {
@@ -812,12 +813,12 @@ class AlAwsCollector {
         ],
         function(err, config) {
             if (err) {
-                console.info('AWSC0006 Lambda self-update config error: ', err);
+                logger.info('AWSC0006 Lambda self-update config error: ', err);
             } else {
                 if (config !== undefined) {
-                    console.info('AWSC0007 Lambda self-update config successful.');
+                    logger.info('AWSC0007 Lambda self-update config successful.');
                 } else {
-                    console.info('AWSC0008 Lambda self-update config nothing to update');
+                    logger.info('AWSC0008 Lambda self-update config nothing to update');
                 }
             }
             callback(err, config);
