@@ -10,11 +10,12 @@
 const { createLogger, format, transports } = require('winston');
 const { combine, timestamp, errors, json } = format;
 
+const showStack = process.env.LOG_ERROR_OPTS ? { stack: process.env.LOG_ERROR_OPTS } : {};
 const logger = createLogger({
     level: process.env.LOG_LEVEL || 'info',
     format: combine(
         timestamp(),
-        errors({ stack: true }),
+        errors(showStack),
         json()
     ),
     transports: [

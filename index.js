@@ -13,6 +13,6 @@ module.exports = {
     Util : require('./al_aws'),
     Health : require('./health_checks'),
     Stats: require('./statistics_templates'),
-    logger: require('./logger')
+    Logger: require('./logger')
 };
 
