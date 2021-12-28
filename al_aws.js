@@ -35,10 +35,10 @@ var selfUpdate = function (callback) {
       S3Key: process.env.aws_lambda_zipfile_name
     };
     var lambda = new AWS.Lambda(LAMBDA_CONFIG);
-    logger.info('AWSC0100 Performing lambda self-update with params: ', JSON.stringify(params));
+    logger.info(`AWSC0100 Performing lambda self-update with params: ${JSON.stringify(params)}`);
     lambda.updateFunctionCode(params, function(err, data) {
         if (err) {
-            logger.info('AWSC0101 Lambda self-update error: ', err);
+            logger.info(`AWSC0101 Lambda self-update error: ${JSON.stringify(err)}`);
         } else {
             logger.info('AWSC0102 Lambda self-update successful.  Data: ' + JSON.stringify(data));
         }
