@@ -638,6 +638,28 @@ describe('al_aws_collector tests', function() {
                 });
             });
         });
+
+        it('send logmsgs got failed', function(done) {
+                ingestCLogmsgsStub.restore();
+                let logmsgErr = {"errorType":"StatusCodeError","errorMessage":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","name":"StatusCodeError","statusCode":400,"message":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","error":"{\"error\":\"body encoding invalid\"}","options":{"method":"POST","url":"https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs"}};
+                ingestCLogmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLogmsgs').callsFake(
+                function fakeFn(data, callback) {
+                    return new Promise (function(resolve, reject) {
+                        reject(logmsgErr);
+                    });
+                });
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    context, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                var data = 'some-data';
+                collector.send(data, false, '', function(error) {
+                    sinon.assert.calledOnce(ingestCLogmsgsStub);
+                    sinon.assert.calledWith(ingestCLogmsgsStub, data);
+                    assert.equal(error, `AWSC0018 failed to send the logmsgs : ${logmsgErr.message}`);
+                    done();   
+                });
+            });
+        });
         
         it('send log success with env vars not set', function (done) {
             const envIngestApi = process.env.ingest_api;

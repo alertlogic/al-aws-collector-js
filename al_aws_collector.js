@@ -312,7 +312,7 @@ class AlAwsCollector {
                     // the collector should register even if there is an error in getting the endpoints.
                     this.updateEndpoints((err, newConfig) => {
                         if(err){
-                            logger.warn('AWSC0002 Error updating endpoints', err);
+                            logger.warn(`AWSC0002 Error updating endpoints ${err}`);
                         } else {
                             // reassign env vars because the config change occurs in the same run in registration.
                             const {
@@ -360,7 +360,7 @@ class AlAwsCollector {
                     // the collector should handle check in even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
                         if (err) {
-                            logger.warn('AWSC0014 Error updating endpoints', err);
+                            logger.warn(`AWSC0014 Error updating endpoints ${err}`);
                         } else {
                             // reassign env vars because the config change occurs in the same run in handle check in.
                             const {
@@ -535,7 +535,7 @@ class AlAwsCollector {
                 return callback(null, resp);
             })
             .catch(exception => {
-                logger.warn('AWSC0011 Collector deregistration failed. ', exception);
+                logger.warn(`AWSC0011 Collector deregistration failed. ${exception}`);
                 return callback(exception);
             });
     }
@@ -554,7 +554,7 @@ class AlAwsCollector {
                     // the collector should send status even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
                         if (err) {
-                            logger.warn('AWSC0016 Error updating endpoints', err);
+                            logger.warn(`AWSC0016 Error updating endpoints ${err}`);
                         } else {
                             // reassign env vars because the config change occurs in the same run in sending status.
                             const {
@@ -586,8 +586,9 @@ class AlAwsCollector {
                                     return asyncCallback(null, resp);
                                 })
                                 .catch(exception => {
-                                    logger.warn('AWSC0013 Collector status send failed: ', exception);
-                                    return asyncCallback(exception);
+                                    logger.warn(`AWSC0013 Collector status send failed: ${exception.message}`);
+                                    logger.debug(exception);
+                                    return asyncCallback(exception.message);
                                 });
                         }
                     });
@@ -610,7 +611,7 @@ class AlAwsCollector {
                     // the collector should send data even if there is an error in getting the endpoints.
                     collector.updateEndpoints((err, newConfig) => {
                         if (err) {
-                            logger.warn('AWSC0015 Error updating endpoints', err);
+                            logger.warn(`AWSC0015 Error updating endpoints ${err}`);
                         } else {
                             // reassign env vars because the config change occurs in the same run in sending data.
                             const {
@@ -676,7 +677,8 @@ class AlAwsCollector {
                     return callback(null, resp);
                 })
                 .catch(exception => {
-                    return callback(exception);
+                    logger.debug(exception);
+                    return callback(`AWSC0018 failed to send the logmsgs : ${exception.message}`);
                 });
                 break;
             case AlAwsCollector.IngestTypes.LMCSTATS:
@@ -685,7 +687,8 @@ class AlAwsCollector {
                     return callback(null, resp);
                 })
                 .catch(exception => {
-                    return callback(exception);
+                    logger.debug(exception);
+                    return callback(`AWSC0019 failed to send the lmcstats : ${exception.message}`);
                 });
                 break;
             default:
@@ -813,7 +816,7 @@ class AlAwsCollector {
         ],
         function(err, config) {
             if (err) {
-                logger.info('AWSC0006 Lambda self-update config error: ', err);
+                logger.info(`AWSC0006 Lambda self-update config error: ${err}`);
             } else {
                 if (config !== undefined) {
                     logger.info('AWSC0007 Lambda self-update config successful.');
