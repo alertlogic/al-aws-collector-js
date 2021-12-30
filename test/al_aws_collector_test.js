@@ -655,7 +655,7 @@ describe('al_aws_collector tests', function() {
                 collector.send(data, false, '', function(error) {
                     sinon.assert.calledOnce(ingestCLogmsgsStub);
                     sinon.assert.calledWith(ingestCLogmsgsStub, data);
-                    assert.equal(error, `AWSC0005 failed to send the logmsgs : ${logmsgErr.message}`);
+                    assert.equal(error, `AWSC0018 failed to send the logmsgs : ${logmsgErr.message}`);
                     done();   
                 });
             });
