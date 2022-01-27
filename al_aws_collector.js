@@ -924,6 +924,44 @@ class AlAwsCollector {
           }
         ];
     }
+
+/**
+ * 
+ * @param {Object} param - Its JSON object with  metricName, namespace, standardUnit and unitValue
+ * param = {
+ * metricName :'custom metrics'
+ * nameSpace : 'PAWSCollector',
+ * standardUnit: 'Count',
+ * unitValue :1
+ * }
+ * @param {*} callback 
+ * @returns 
+ */
+    reportCWMetric(param, callback) {
+        let cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
+        const params = {
+            MetricData: [
+                {
+                    MetricName: param.metricName,
+                    Dimensions: [
+                        {
+                            Name: 'CollectorType',
+                            Value: this._collectorType
+                        },
+                        {
+                            Name: 'FunctionName',
+                            Value: this._name
+                        }
+                    ],
+                    Timestamp: new Date(),
+                    Unit: param.standardUnit,
+                    Value: param.unitValue
+                }
+            ],
+            Namespace: param.nameSpace
+        };
+        return cloudwatch.putMetricData(params, callback);
+    }
 }
 
 module.exports = AlAwsCollector;
