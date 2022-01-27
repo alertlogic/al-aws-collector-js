@@ -157,6 +157,43 @@ var getAllKinesisMetricsFuns = function(streamName) {
     ]
 }
 
+/**
+ * 
+ * @param {*} metricName - custom metric name 
+ * @param {*} collectorType - Collector type 
+ * @param {*} functionName - Lambda function name
+ * @param {*} namespace - Custom namespace 
+ * @param {*} StandardUnit - can be any value from this or string "Seconds"|"Microseconds"|"Milliseconds"|"Bytes"|"Kilobytes"|"Megabytes"|"Gigabytes"|"Terabytes"|"Bits"|"Kilobits"|"Megabits"|"Gigabits"|"Terabits"|"Percent"|"Count"|"Bytes/Second"|"Kilobytes/Second"|"Megabytes/Second"|"Gigabytes/Second"|"Terabytes/Second"|"Bits/Second"|"Kilobits/Second"|"Megabits/Second"|"Gigabits/Second"|"Terabits/Second"|"Count/Second"|"None"|string;
+ * @param {*} unitValue -value as per StandardUnit selected
+ * @param {*} callback 
+ * @returns 
+ */
+var reportCWMetric = function (metricName, collectorType, functionName, namespace, standardUnit, unitValue, callback) {
+    let cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
+    const params = {
+        MetricData: [
+            {
+                MetricName: metricName,
+                Dimensions: [
+                    {
+                        Name: 'CollectorType',
+                        Value: collectorType
+                    },
+                    {
+                        Name: 'FunctionName',
+                        Value: functionName
+                    }
+                ],
+                Timestamp: new Date(),
+                Unit: standardUnit,
+                Value: unitValue
+            }
+        ],
+        Namespace: namespace
+    };
+    return cloudwatch.putMetricData(params, callback);
+}
+
 module.exports = {
     getMetricStatistics : getMetricStatistics,
     getLambdaMetrics : getLambdaMetrics,
@@ -165,4 +202,5 @@ module.exports = {
     // functions which return funs:
     getAllKinesisMetricsFuns : getAllKinesisMetricsFuns,
     getCustomMetrics: getCustomMetrics,
+    reportCWMetric: reportCWMetric
 };
