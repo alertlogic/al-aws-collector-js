@@ -132,6 +132,7 @@ class AlAwsCollector {
         this._stackName = process.env.stack_name;
         this._applicationId = process.env.al_application_id;
         this._streams = streams;
+        this._cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
     }
     
     set context (context) {
@@ -923,6 +924,43 @@ class AlAwsCollector {
             value: {str: process.env.AWS_LAMBDA_FUNCTION_NAME}
           }
         ];
+    }
+
+/**
+ * 
+ * @param {Object} param - Its JSON object with  metricName, namespace, standardUnit and unitValue
+ * param = {
+ * metricName :'custom metrics'
+ * nameSpace : 'PAWSCollector',
+ * standardUnit: 'Count',
+ * unitValue :1
+ * }
+ * @param {*} callback 
+ * @returns 
+ */
+    reportCWMetric(param, callback) {
+        const params = {
+            MetricData: [
+                {
+                    MetricName: param.metricName,
+                    Dimensions: [
+                        {
+                            Name: 'CollectorType',
+                            Value: this._collectorType
+                        },
+                        {
+                            Name: 'FunctionName',
+                            Value: this._name
+                        }
+                    ],
+                    Timestamp: new Date(),
+                    Unit: param.standardUnit,
+                    Value: param.unitValue
+                }
+            ],
+            Namespace: param.nameSpace
+        };
+        return this._cloudwatch.putMetricData(params, callback);
     }
 }
 
