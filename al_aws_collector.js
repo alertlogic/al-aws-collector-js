@@ -132,6 +132,7 @@ class AlAwsCollector {
         this._stackName = process.env.stack_name;
         this._applicationId = process.env.al_application_id;
         this._streams = streams;
+        this._cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
     }
     
     set context (context) {
@@ -938,7 +939,6 @@ class AlAwsCollector {
  * @returns 
  */
     reportCWMetric(param, callback) {
-        let cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
         const params = {
             MetricData: [
                 {
@@ -960,7 +960,7 @@ class AlAwsCollector {
             ],
             Namespace: param.nameSpace
         };
-        return cloudwatch.putMetricData(params, callback);
+        return this._cloudwatch.putMetricData(params, callback);
     }
 }
 
