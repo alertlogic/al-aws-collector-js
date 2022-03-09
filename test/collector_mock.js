@@ -7,6 +7,7 @@ const STACK_NAME = 'test-stack-01';
 const AL_API = 'api.global-services.global.alertlogic.com';
 const INGEST_API = 'ingest.global-services.global.alertlogic.com';
 const AZCOLLECT_API = 'azcollect.global-services.global.alertlogic.com';
+const CTRL_SNS_ARN = 'arn:aws:sns:us-east-1:123456789012:AlCollectorControlSNS';
 
 var initProcessEnv = function() {
     process.env.AWS_REGION = 'us-east-1';
@@ -22,6 +23,7 @@ var initProcessEnv = function() {
     process.env.aws_lambda_update_config_name = S3_CONFIGURATION_FILE_NAME;
     process.env.collector_id = 'collector-id';
     process.env.al_application_id = 'app-id';
+    process.env.al_control_sns_arn = CTRL_SNS_ARN;
 };
 
 
@@ -362,6 +364,29 @@ const LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE = {
         LastUpdateStatusReasonCode: 'LastUpdateStatusReasonCode'
     };
 
+const CHECKIN_SNS_TRIGGER = {
+    "Records": [
+        {
+            "EventSource": "aws:sns",
+            "EventVersion": "1.0",
+            "EventSubscriptionArn": "arn:aws:sns:us-east-1:123456789012:AlCollectorControlSNS:97f1e276-ee2f-442a-8621-8d83b19e8cd8",
+            "Sns": {
+                "Type": "Notification",
+                "MessageId": "ae23d09e-f019-590a-bfd2-8a077f34bd42",
+                "TopicArn": "arn:aws:sns:us-east-1:123456789012:AlCollectorControlSNS",
+                "Subject": null,
+                "Message": "{\"RequestType\": \"ScheduledEvent\", \"Type\": \"Checkin\", \"AwsAccountId\": \"123456789012\", \"Region\": \"us-east-1\", \"StackName\": \"AlPawsCollector-E4EEE2D2-321A-4DC9-852D-0995DD6016C7\"}",
+                "Timestamp": "2022-03-02T15:27:41.813Z",
+                "SignatureVersion": "1",
+                "Signature": "LhbLDhhx5QIXJoEfzLpd6F7NTRX9BVP8gfqaP8ouMlMLaxdvsxLH1MD5F9oFGtA4oJgcMArcaiHp3bpDYnIiEPZJ3YdJRuuAECixwDwO/ROYVhiLRi0Xag++2oB9fDOhIErg1VfDxOA44eyGiMr15D8+ZLXogiMJjttcu5yn6UntahsL+F22uWfZz5Kplx3xf0eczU/qjX+vMF0d+ClVN2iwrVOFzWvTf4szjysI8BE5TU9kiqKXbwo+p5krIwpoyYhCKSGBH52Dkzo9qmFPk1Ug1je4FySQghnOLfRR+MIBrikUQr5SkeQ7kGtE1taHy7hInkLIsiy6oMeE8NOfrA==",
+                "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-7ff5318490ec183fbaddaa2a969abfda.pem",
+                "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:AlCollectorControlSNS:97f1e276-ee2f-442a-8621-8d83b19e8cd8",
+                "MessageAttributes": {}
+            }
+        }
+    ]
+};
+
 module.exports = {
     initProcessEnv : initProcessEnv,
     FUNCTION_ARN : FUNCTION_ARN,
@@ -369,28 +394,24 @@ module.exports = {
     S3_BUCKET : S3_BUCKET,
     S3_ZIPFILE : S3_ZIPFILE,
     STACK_NAME : STACK_NAME,
-    
     AIMS_TEST_CREDS: AIMS_TEST_CREDS,
-
     REGISTRATION_TEST_EVENT : REGISTRATION_TEST_EVENT,
     REG_URL : REG_URL,
     GET_AZCOLLECT_URL: GET_AZCOLLECT_URL,
     GET_INGEST_URL: GET_INGEST_URL,
     REG_PARAMS : REG_PARAMS,
     REG_AZCOLLECT_QUERY : REG_AZCOLLECT_QUERY,
-
     DEREGISTRATION_TEST_EVENT : DEREGISTRATION_TEST_EVENT,
     DEREG_URL : DEREG_URL,
     DEREG_PARAMS : DEREG_PARAMS,
-
     CHECKIN_URL : CHECKIN_URL,
     CHECKIN_AZCOLLECT_QUERY : CHECKIN_AZCOLLECT_QUERY,
     CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR : CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR,
-    CF_DESCRIBE_STACKS_RESPONSE : CF_DESCRIBE_STACKS_RESPONSE,
     CHECKIN_ERROR_AZCOLLECT_QUERY : CHECKIN_ERROR_AZCOLLECT_QUERY,
+    CHECKIN_SNS_TRIGGER : CHECKIN_SNS_TRIGGER,
+    CF_DESCRIBE_STACKS_RESPONSE : CF_DESCRIBE_STACKS_RESPONSE,
     CF_DESCRIBE_STACKS_FAILED_RESPONSE: CF_DESCRIBE_STACKS_FAILED_RESPONSE,
     CLOUDWATCH_GET_METRIC_STATS_OK : CLOUDWATCH_GET_METRIC_STATS_OK,
-    
     S3_CONFIGURATION_BUCKET: S3_CONFIGURATION_BUCKET,
     S3_CONFIGURATION_FILE_NAME : S3_CONFIGURATION_FILE_NAME,
     S3_CONFIGURATION_FILE_NOCHANGE : S3_CONFIGURATION_FILE_NOCHANGE,

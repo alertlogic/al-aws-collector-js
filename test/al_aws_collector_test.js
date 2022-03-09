@@ -283,6 +283,27 @@ describe('al_aws_collector tests', function() {
             });
         });
 
+        it('checkin via SNS success registered', function(done) {
+            var mockCtx = {
+                invokedFunctionArn : colMock.FUNCTION_ARN,
+                functionName : colMock.FUNCTION_NAME,
+                fail : function(error) {
+                    assert.fail(error);
+                },
+                succeed : function() {
+                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
+                    done();
+                }
+            };
+
+            AlAwsCollector.load().then(function(creds) {
+                let collector = new AlAwsCollector(
+                        mockCtx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                const testEvent = colMock.CHECKIN_SNS_TRIGGER;
+                collector.handleEvent(testEvent);
+            });
+        });
+
         it('checkin success registered with env vars not set', function (done) {
             const envIngestApi = process.env.ingest_api;
             const envAzcollectApi = process.env.ingest_api;
@@ -1213,9 +1234,10 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
     const ENCRYPTED_SECRET_KEY_BASE64 = new Buffer(ENCRYPTED_SECRET_KEY).toString('base64');
     const DECRYPTED_SECRET_KEY = 'secret_key';
 
-    before(function() {
+    before(function(done) {
         collectRewire = rewire('../al_aws_collector');
         rewireGetDecryptedCredentials = collectRewire.__get__('getDecryptedCredentials');
+        done();
     });
 
     beforeEach(function() {

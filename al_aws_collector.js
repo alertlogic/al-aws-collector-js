@@ -133,6 +133,7 @@ class AlAwsCollector {
         this._applicationId = process.env.al_application_id;
         this._streams = streams;
         this._cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
+        this._controlSnsArn = process.env.al_control_sns_arn;
     }
     
     set context (context) {
@@ -832,9 +833,11 @@ class AlAwsCollector {
     handleEvent(event) {
         let collector = this;
         let context = this._invokeContext;
-        switch (event.RequestType) {
+        let parsedEvent = collector._parseEvent(event);
+
+        switch (parsedEvent.RequestType) {
         case 'ScheduledEvent':
-            switch (event.Type) {
+            switch (parsedEvent.Type) {
                 case 'SelfUpdate':
                     return collector.handleUpdate();
                     break;
@@ -842,17 +845,40 @@ class AlAwsCollector {
                     return collector.handleCheckin();
                     break;
                 default:
-                    return context.fail('AWSC0009 Unknown scheduled event detail type: ' + event.Type);
+                    return context.fail('AWSC0009 Unknown scheduled event detail type: ' + parsedEvent.Type);
             }
         case 'Create':
             return collector.registerSync(event, {});
         case 'Delete':
             return collector.deregisterSync(event, {});
         default:
-            return context.fail('AWSC0012 Unknown event:' + event);
+            return context.fail('AWSC0012 Unknown event:' + JSON.stringify(event));
         }
     }
-    
+
+    /**
+     * Control events like checkin/update may be coming directly from CloudWatch
+     * and have been sent via SNS.
+     * @param {*} event
+     */
+    _parseEvent(event) {
+        let collector = this;
+        if (event.RequestType) {
+            return event;
+        } else if (event.Records) {
+            let snsControlEvents = event.Records.filter((rec) => {
+                return rec.EventSource === 'aws:sns' &&
+                    rec.Sns.TopicArn === collector._controlSnsArn;
+            });
+
+            if (snsControlEvents[0] && snsControlEvents[0].Sns.Message) {
+                return JSON.parse(snsControlEvents[0].Sns.Message);
+            } else {
+                return event;
+            }
+        }
+
+    }
     /**
      * To handle async event 
      * @param {*} event 
