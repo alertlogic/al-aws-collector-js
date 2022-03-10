@@ -21,7 +21,7 @@ const LAMBDA_CONFIG = {
         maxRetries: 10
 };
 const LAMBDA_UPDATE_RETRY = {
-        times: 10,
+        times: 20,
         // intervals of 200, 400, 800, 1600, 3200, ... ms)
         interval: function(retryCount) {
             return Math.min(100 * Math.pow(2, retryCount), 5000);
