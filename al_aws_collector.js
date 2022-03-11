@@ -29,22 +29,24 @@ var AIMS_DECRYPTED_CREDS = null;
 const AL_SERVICES = ['ingest', 'azcollect'];
 
 const NOUPDATE_CONFIG_PARAMS = [
-    'FunctionArn',
-    'Role',
-    'CodeSize',
-    'LastModified',
+    'Architectures',
     'CodeSha256',
-    'Version',
-    'MasterArn',
-    'RevisionId',
-    'State',
-    'StateReason',
-    'StateReasonCode',
+    'CodeSize',
+    'FunctionArn',
+    'LastModified',
     'LastUpdateStatus',
     'LastUpdateStatusReason',
     'LastUpdateStatusReasonCode',
-    'PackageType'
+    'MasterArn',
+    'PackageType',
+    'RevisionId',
+    'Role',
+    'State',
+    'StateReason',
+    'StateReasonCode',
+    'Version'
 ];
+
 
 function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
@@ -897,8 +899,7 @@ class AlAwsCollector {
     _applyConfigChanges(newValues, config, callback) {
         var newConfig = {};
         Object.assign(newConfig, config);
-        
-        
+
         try {
             Object.keys(newValues).forEach(
                 function(item) {

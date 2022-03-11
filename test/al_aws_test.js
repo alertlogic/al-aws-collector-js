@@ -213,7 +213,7 @@ describe('al_aws Tests', function() {
                 assert.equal('Function update is in progress', err.message);
                 done();
             });
-        }).timeout(30000);
+        }).timeout(120000);
     });
 });
 
