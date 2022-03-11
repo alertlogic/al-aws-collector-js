@@ -4,7 +4,7 @@
  *
  * Helper class for lambda function utility and helper methods.
  *
- * Last message ID: AWSC0106
+ * Last message ID: AWSC0107
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -77,8 +77,14 @@ var getLambdaConfig = function(callback) {
 };
 
 var updateLambdaConfig = function(config, callback) {
-    var lambda = new AWS.Lambda(LAMBDA_CONFIG);
-    lambda.updateFunctionConfiguration(config, callback);
+    waitForFunctionUpdate(function(err) {
+        if(err) {
+            logger.error('AWSC0107 Error getting function config, lambda config was not updated', err);
+            return callback(err);
+        }
+        var lambda = new AWS.Lambda(LAMBDA_CONFIG);
+        return lambda.updateFunctionConfiguration(config, callback);
+    });
 };
 
 //DEPRECATED FUNCTION
