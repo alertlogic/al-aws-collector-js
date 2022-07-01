@@ -542,23 +542,14 @@ describe('al_aws_collector tests', function() {
             functionName: colMock.FUNCTION_NAME
         };
         const stub = sinon.stub();
-        let describeCallCount = 0;
-        const MAX_RETRIES = 3;
         before(function () {
             stub.onCall(0).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
             stub.onCall(1).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
             stub.onCall(2).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
             stub.onCall(3).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
+            stub.onCall(4).returns(null,colMock.CF_DESCRIBE_STACKS_RESPONSE);
             AWS.mock('CloudFormation', 'describeStacks', function (params, callback) {
-                if (describeCallCount < MAX_RETRIES) {
-                    describeCallCount++;
-                    return callback(stub(), null);
-                }
-                else {
-                    describeCallCount++;
-
-                    return callback(null, colMock.CF_DESCRIBE_STACKS_RESPONSE);
-                }
+                    return callback(stub(), colMock.CF_DESCRIBE_STACKS_RESPONSE);
             });
             const cf = new AWS_SDK.CloudFormation({ region: 'us-east-1' });
             mockDescribeStacks(cf, colMock.STACK_NAME, function (data) {  return data;});
@@ -567,7 +558,6 @@ describe('al_aws_collector tests', function() {
         });
 
         after(function () {
-            describeCallCount = 0;
             AWS.restore('CloudFormation', 'describeStacks');
             AWS.restore('Lambda', 'updateFunctionConfiguration');
         });
