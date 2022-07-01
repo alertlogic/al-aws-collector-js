@@ -202,6 +202,26 @@ const CHECKIN_ERROR_AZCOLLECT_QUERY = {
     }
 };
 
+const CHECKIN_ERROR_THROTTLING_AZCOLLECT_QUERY = {
+    body: {
+        awsAccountId: '123456789012',
+        collectorId: 'collector-id',
+        applicationId: 'app-id',
+        dataType: 'secmsgs',
+        functionName: 'test-VpcFlowCollectLambdaFunction',
+        region: 'us-east-1',
+        stackName: 'test-stack-01',
+        version: '1.0.0',
+        status: 'error',
+        error_code: 'ALAWS00001',
+        details: {"error":{"text":"{\"message\":\"Rate exceeded\",\"code\":\"Throttling\",\"time\":\"2022-06-13T10:12:35.817Z\",\"requestId\":\"b84e4d3f-8740-4e83-90ad-ce8da25438b3\",\"statusCode\":400,\"retryable\":true}"}},
+        statistics:[
+            {'Label':'Invocations','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]},
+            {'Label':'Errors','Datapoints':[{'Timestamp':'2017-11-21T16:40:00Z','Sum':1,'Unit':'Count'}]}
+        ]
+    }
+};
+
 const CF_DESCRIBE_STACKS_FAILED_RESPONSE = {
   'ResponseMetadata': {
     'RequestId': 'f9f5e0e7-be24-11e7-9891-49fc9e4a2c65'
@@ -226,6 +246,15 @@ const CF_DESCRIBE_STACKS_FAILED_RESPONSE = {
       'EnableTerminationProtection': false
     }
   ]
+};
+
+const CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR = {
+    "message": "Rate exceeded",
+    "code": "Throttling",
+    "time": "2022-06-13T10:12:35.817Z",
+    "requestId": "b84e4d3f-8740-4e83-90ad-ce8da25438b3",
+    "statusCode": 400,
+    "retryable": true
 };
 
 const CLOUDWATCH_GET_METRIC_STATS_OK = {
@@ -408,9 +437,11 @@ module.exports = {
     CHECKIN_AZCOLLECT_QUERY : CHECKIN_AZCOLLECT_QUERY,
     CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR : CHECKIN_AZCOLLECT_QUERY_CUSTOM_HEALTHCHECK_ERROR,
     CHECKIN_ERROR_AZCOLLECT_QUERY : CHECKIN_ERROR_AZCOLLECT_QUERY,
+    CHECKIN_ERROR_THROTTLING_AZCOLLECT_QUERY : CHECKIN_ERROR_THROTTLING_AZCOLLECT_QUERY,
     CHECKIN_SNS_TRIGGER : CHECKIN_SNS_TRIGGER,
     CF_DESCRIBE_STACKS_RESPONSE : CF_DESCRIBE_STACKS_RESPONSE,
     CF_DESCRIBE_STACKS_FAILED_RESPONSE: CF_DESCRIBE_STACKS_FAILED_RESPONSE,
+    CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR: CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR,
     CLOUDWATCH_GET_METRIC_STATS_OK : CLOUDWATCH_GET_METRIC_STATS_OK,
     S3_CONFIGURATION_BUCKET: S3_CONFIGURATION_BUCKET,
     S3_CONFIGURATION_FILE_NAME : S3_CONFIGURATION_FILE_NAME,

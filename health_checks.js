@@ -10,6 +10,7 @@
 
 const AWS = require('aws-sdk');
 
+const m_alAws = require('./al_aws');
 
 /**
  * checks status of CF, returns error in case if it's in failed state, returns error.
@@ -28,10 +29,15 @@ const AWS = require('aws-sdk');
  */
 
 function checkCloudFormationStatus(stackName, callback) {
-    var cloudformation = new AWS.CloudFormation();
+    var cloudformation = new AWS.CloudFormation({
+        maxRetries:7,
+        retryDelayOptions: {
+            customBackoff: m_alAws.customBackoff
+        }
+    });
     cloudformation.describeStacks({StackName: stackName}, function(err, data) {
         if (err) {
-            return callback(errorMsg('ALAWS00001', stringify(err)));
+           return callback(errorMsg('ALAWS00001', stringify(err)));
         } else {
             var stackStatus = data.Stacks[0].StackStatus;
             if (stackStatus === 'CREATE_COMPLETE' ||
@@ -84,3 +90,4 @@ module.exports = {
     errorMsg : errorMsg,
     checkCloudFormationStatus : checkCloudFormationStatus
 };
+

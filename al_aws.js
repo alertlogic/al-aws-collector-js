@@ -15,6 +15,8 @@ const moment = require('moment');
 const async = require('async');
 const logger = require('./logger');
 
+const MIN_RANDOM_VALUE = 100;
+const MAX_RANDOM_VALUE = 3000;
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
 const LAMBDA_CONFIG = {
@@ -215,6 +217,26 @@ var setEnv = function(vars, callback) {
 };
 
 
+function getRandomIntInclusive(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1) + min);
+};
+
+
+var customBackoff = function (retryCount, err) {
+    if (err && err.code && err.code.indexOf('Throttling') > -1) {
+        logger.debug(`AWSC00011 customBackoff:- retryCount:${retryCount} Error:${err} `);
+        const randomValue = getRandomIntInclusive(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE) + (Math.pow(2, retryCount) * 100);
+        logger.debug(`AWSC00011 customBackoff:- delay: ${randomValue}`);
+        return randomValue;
+    } else {
+        return 0;
+    }
+};
+
+
+
 module.exports = {
     selfUpdate : selfUpdate,
     getS3ConfigChanges : getS3ConfigChanges,
@@ -224,6 +246,7 @@ module.exports = {
     arnToAccId : arnToAccId,
     setEnv : setEnv,
     waitForFunctionUpdate: waitForFunctionUpdate,
+    customBackoff: customBackoff,
     
     //DEPRECATED FUNCTIONS
     //please use statistics_templates.js instead
