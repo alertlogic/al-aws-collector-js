@@ -473,9 +473,6 @@ class AlAwsCollector {
         let collector = this;
         const appliedHealthChecks = customChecks.map(check => check.bind(this));
         async.parallel([
-            function(asyncCallback) {
-                m_healthChecks.checkCloudFormationStatus(collector._stackName, asyncCallback);
-            }
         ].concat(appliedHealthChecks),
         function(errMsg) {
             var status = {};
