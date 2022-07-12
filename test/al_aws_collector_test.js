@@ -108,6 +108,14 @@ function mockLambdaGetFunctionConfiguration(returnObject) {
     });
 }
 
+ function mockDescribeStacks(cf,stackName,callback){
+    cf.describeStacks({ StackName: stackName}, (err, data) => {
+        if (err) {
+            callback(err);
+        }
+        callback(data);
+    });
+ }
 
 function mockLambdaEndpointsUpdateConfiguration() {
     AWS.mock('Lambda', 'updateFunctionConfiguration', function (params, callback) {
@@ -250,11 +258,16 @@ describe('al_aws_collector tests', function() {
         };
         
         before(function() {
+            AWS.mock('CloudFormation', 'describeStacks', function(params, callback) {
+                assert.equal(params.StackName, colMock.STACK_NAME);
+                return callback(null, colMock.CF_DESCRIBE_STACKS_RESPONSE);
+            });
             mockLambdaMetricStatistics();
             colMock.initProcessEnv();
         });
 
         after(function() {
+            AWS.restore('CloudFormation', 'describeStacks');
             AWS.restore('CloudWatch', 'getMetricStatistics');
         });
 
@@ -486,7 +499,87 @@ describe('al_aws_collector tests', function() {
         });
     });
 
-   
+    describe('checkin error', function() {
+
+        var checkinContext = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME
+        };
+
+        before(function() {
+            AWS.mock('CloudFormation', 'describeStacks', function(params, callback) {
+                assert.equal(params.StackName, colMock.STACK_NAME);
+                return callback(null, colMock.CF_DESCRIBE_STACKS_FAILED_RESPONSE);
+            });
+            mockLambdaMetricStatistics();
+        });
+
+        after(function() {
+            AWS.restore('CloudFormation', 'describeStacks');
+            AWS.restore('Lambda', 'updateFunctionConfiguration');
+        });
+
+        it('checkin error with healthCheck', function(done) {
+            AlAwsCollector.load().then(function(creds) {
+                var collector = new AlAwsCollector(
+                    checkinContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, 
+                undefined, [function (asyncCallback) {
+                    m_healthChecks.checkCloudFormationStatus(colMock.STACK_NAME, asyncCallback);
+                }], [],[]);
+                collector.checkin(function(error) {
+                    assert.equal(error, undefined);
+                    sinon.assert.calledWith(
+                        alserviceStub.post,
+                        colMock.CHECKIN_URL,
+                        colMock.CHECKIN_ERROR_AZCOLLECT_QUERY
+                    );
+                    done();
+                });
+            });
+        });
+    });
+
+    describe('checkin error throttling', function () {
+        var checkinContext = {
+            invokedFunctionArn: colMock.FUNCTION_ARN,
+            functionName: colMock.FUNCTION_NAME
+        };
+        const stub = sinon.stub();
+        before(function () {
+            stub.onCall(0).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
+            stub.onCall(1).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
+            stub.onCall(2).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
+            stub.onCall(3).returns(colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR);
+            stub.onCall(4).returns(null,colMock.CF_DESCRIBE_STACKS_RESPONSE);
+            AWS.mock('CloudFormation', 'describeStacks', function (params, callback) {
+                    return callback(stub(), colMock.CF_DESCRIBE_STACKS_RESPONSE);
+            });
+            const cf = new AWS_SDK.CloudFormation({ region: 'us-east-1' });
+            mockDescribeStacks(cf, colMock.STACK_NAME, function (data) {  return data;});
+            mockDescribeStacks(cf, colMock.STACK_NAME, function (data) { return data; });
+            mockLambdaMetricStatistics();
+        });
+
+        after(function () {
+            AWS.restore('CloudFormation', 'describeStacks');
+            AWS.restore('Lambda', 'updateFunctionConfiguration');
+        });
+
+        it('healthCheck with throttling', function (done) {
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    checkinContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, undefined, [function (asyncCallback) {
+                        m_healthChecks.checkCloudFormationStatus(colMock.STACK_NAME, asyncCallback);
+                    }],[], []);
+                collector.checkin(function (error) {
+                    assert.equal(error, undefined);
+                    assert.equal(stub().code, colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR.code);
+                    done();
+                });
+            });
+        });
+
+    });
 
     it('deregister success', function(done) {
         var deregisterContext = {
@@ -1080,6 +1173,23 @@ describe('al_aws_collector tests', function() {
             AWS.restore('Lambda', 'updateFunctionConfiguration');
         });
         
+        it('sunny config update', () => {
+            var updateConfig = collector._filterDisallowedConfigParams(colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE);
+    
+            mockS3GetObject(colMock.S3_CONFIGURATION_FILE_CHANGE);
+            mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
+    
+            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+                assert(deepEqual(updateConfig, params));
+                callback(null, colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE);
+            });
+    
+            collector.selfConfigUpdate((err, config) => {
+                assert.equal(null, err);
+                assert(deepEqual(colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE, config));
+            });
+        });
+    
         it('no config updates', () => {
             mockS3GetObject(colMock.S3_CONFIGURATION_FILE_NOCHANGE);
             mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
@@ -1258,6 +1368,10 @@ describe('al_aws_collector error tests', function() {
             });
 
         setAlServiceErrorStub();
+        AWS.mock('CloudFormation', 'describeStacks', function(params, callback) {
+            assert.equal(params.StackName, colMock.STACK_NAME);
+            return callback(null, colMock.CF_DESCRIBE_STACKS_RESPONSE);
+        });
         mockLambdaMetricStatistics();
         mockSetEnvStub();
     });
@@ -1266,6 +1380,7 @@ describe('al_aws_collector error tests', function() {
         restoreAlServiceStub();
         responseStub.restore();
         setEnvStub.restore();
+        AWS.restore('CloudFormation', 'describeStacks');
         AWS.restore('CloudWatch', 'getMetricStatistics');
     });
 
