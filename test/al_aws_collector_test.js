@@ -522,7 +522,10 @@ describe('al_aws_collector tests', function() {
         it('checkin error with healthCheck', function(done) {
             AlAwsCollector.load().then(function(creds) {
                 var collector = new AlAwsCollector(
-                checkinContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                    checkinContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, 
+                undefined, [function (asyncCallback) {
+                    m_healthChecks.checkCloudFormationStatus(colMock.STACK_NAME, asyncCallback);
+                }], [],[]);
                 collector.checkin(function(error) {
                     assert.equal(error, undefined);
                     sinon.assert.calledWith(
@@ -565,7 +568,9 @@ describe('al_aws_collector tests', function() {
         it('healthCheck with throttling', function (done) {
             AlAwsCollector.load().then(function (creds) {
                 var collector = new AlAwsCollector(
-                    checkinContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, undefined, [], []);
+                    checkinContext, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, undefined, [function (asyncCallback) {
+                        m_healthChecks.checkCloudFormationStatus(colMock.STACK_NAME, asyncCallback);
+                    }],[], []);
                 collector.checkin(function (error) {
                     assert.equal(error, undefined);
                     assert.equal(stub().code, colMock.CF_DESCRIBE_STACKS_FAILED_THROTTLING_ERROR.code);

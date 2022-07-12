@@ -406,7 +406,6 @@ class AlAwsCollector {
         const context = this._invokeContext;
         const checks = this._customHealthChecks;
         const statsFuns = this._customStatsFuns;
-
         //it is assumed that all functions here always return err != null
         async.parallel([
             function(asyncCallback) {
@@ -472,28 +471,25 @@ class AlAwsCollector {
     getHealthStatus(context, customChecks, callback) {
         let collector = this;
         const appliedHealthChecks = customChecks.map(check => check.bind(this));
-        async.parallel([
-            function(asyncCallback) {
-                m_healthChecks.checkCloudFormationStatus(collector._stackName, asyncCallback);
-            }
-        ].concat(appliedHealthChecks),
-        function(errMsg) {
-            var status = {};
-            if (errMsg) {
-                logger.warn('ALAWS00001 Health check failed with',  errMsg);
-                status = {
-                    status: errMsg.status,
-                    error_code: errMsg.code,
-                    details: { error: { text: errMsg.details } }
-                };
-            } else {
-                status = {
-                    status: 'ok',
-                    details: {}
-                };
-            }
-            return callback(null, status);
-        });
+        async.parallel(
+            appliedHealthChecks,
+            function (errMsg) {
+                var status = {};
+                if (errMsg) {
+                    logger.warn('ALAWS00001 Health check failed with', errMsg);
+                    status = {
+                        status: errMsg.status,
+                        error_code: errMsg.code,
+                        details: { error: { text: errMsg.details } }
+                    };
+                } else {
+                    status = {
+                        status: 'ok',
+                        details: {}
+                    };
+                }
+                return callback(null, status);
+            });
     }
 
     getStatistics(context, statsFuns, callback) {
