@@ -50,4 +50,5 @@ stages:
                  echo "NOT PUBLISHING $PKGNAME $PKGVERSION"
               fi
             - echo done
-            
+        outputs:
+            file: ./.ps_outputs/*     
