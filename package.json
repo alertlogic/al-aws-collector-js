@@ -10,7 +10,7 @@
   "private": false,
   "scripts": {
     "lint": "jshint --exclude \"./node_modules/*\" **/*.js",
-    "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura mocha './test/*_test.js' --colors",
+    "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura --reporter=text mocha './test/*_test.js' --colors",
     "rel": "npm publish --access=public"
   },
   "main": "index.js",
