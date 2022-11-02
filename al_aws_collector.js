@@ -747,6 +747,7 @@ class AlAwsCollector {
                         filterJson: '', 
                         filterRegexp: ''
                     };
+                   //TODO: We need to take pass filter parameters filterJson, filterRegexp via collector obj or env vars
                     m_alCollector.AlLog.buildPayload(
                         buildPayloadObj, (err, payloadObj) => {
                             return asyncCallback(err, payloadObj);
