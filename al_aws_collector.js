@@ -738,8 +738,17 @@ class AlAwsCollector {
         if (messages && messages.length > 0) {
             async.waterfall([
                 function (asyncCallback) {
+                    let buildPayloadObj = {
+                        hostId: collector._collectorId, 
+                        sourceId: collector._collectorId, 
+                        hostmetaElems: hostmetaElems, 
+                        content: messages, 
+                        parseCallback: formatFun, 
+                        filterJson: '', 
+                        filterRegexp: ''
+                    };
                     m_alCollector.AlLog.buildPayload(
-                        collector._collectorId, collector._collectorId, hostmetaElems, messages, formatFun, (err, payloadObj) => {
+                        buildPayloadObj, (err, payloadObj) => {
                             return asyncCallback(err, payloadObj);
                         });
                 },
