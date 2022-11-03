@@ -4,8 +4,14 @@ test/report.xml
 #idea
 .idea/
 nbproject/
-.nyc_output/
-coverage/
 test/ide_test.js
 .env
 *.swp
+
+# Test coverage
+.nyc_output/
+coverage/
+*.coverage.xml
+
+# alps directories
+.ps_outputs
