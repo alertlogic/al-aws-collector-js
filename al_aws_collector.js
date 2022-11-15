@@ -859,6 +859,8 @@ class AlAwsCollector {
             return collector.registerSync(event, {});
         case 'Delete':
             return collector.deregisterSync(event, {});
+        case 's3:TestEvent':
+            return context.succeed();
         default:
             return context.fail('AWSC0012 Unknown event:' + JSON.stringify(event));
         }
@@ -882,7 +884,19 @@ class AlAwsCollector {
             if (snsControlEvents[0] && snsControlEvents[0].Sns.Message) {
                 return JSON.parse(snsControlEvents[0].Sns.Message);
             } else {
-                return event;
+                const records = event.Records.map((record) => {
+                    if (record.body) {
+                        const body = JSON.parse(record.body);
+                        return body;
+                    }
+                    return [];
+                });
+                const message = records.length > 0 && records[0].Message ? typeof records[0].Message == 'string' ? JSON.parse(records[0].Message) : records[0].Message : null;
+                if (message && message.Event && message.Event === "s3:TestEvent") {
+                    message.RequestType = "s3:TestEvent";
+                    return message;
+                }
+                else return event;
             }
         }
 

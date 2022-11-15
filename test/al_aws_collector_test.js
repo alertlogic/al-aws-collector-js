@@ -250,6 +250,25 @@ describe('al_aws_collector tests', function() {
         });
     });
 
+    it('Check TestEvent succeed without any error', function(done) {
+        var mockCtx = {
+            invokedFunctionArn : colMock.FUNCTION_ARN,
+            functionName : colMock.FUNCTION_NAME,
+            fail : function(error) {
+                assert.fail(error);
+            },
+            succeed : function() {
+                done();
+            }
+        };
+
+        AlAwsCollector.load().then(function(creds) {
+            let collector = new AlAwsCollector(
+                    mockCtx, 's3', AlAwsCollector.IngestTypes.LOGMSGS,'1.0.0', creds, undefined, [], []);
+            const testEvent = colMock.S3_TEST_EVENT;
+            collector.handleEvent(testEvent);
+        });
+    });
     describe('checkin success', function() {
 
         var mockContext = {

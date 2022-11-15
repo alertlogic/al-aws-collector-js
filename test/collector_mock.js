@@ -416,6 +416,16 @@ const CHECKIN_SNS_TRIGGER = {
     ]
 };
 
+const S3_TEST_EVENT = {
+    Records: [
+        {
+            messageId: "6a562eba-42f3-448e-a0d7-77962c0e9510",
+            body: "{\"Type\":\"Notification\",\"MessageId\":\"4189c853-f31a-5aae-bd1c-93802b\",\"TopicArn\":\"arn:aws:sns:us-east-1:352283894008:test-AlertLogicS3SNSTopic\",\"Subject\":\"Amazon S3 Notification\",\"Message\":{\"Service\":\"Amazon S3\",\"Event\":\"s3:TestEvent\",\"Time\":\"2022-10-30T12:33:44.334Z\",\"Bucket\":\"tests3-bucket\",\"RequestId\":\"NPB3KH7AWA1TJ02\",\"HostId\":\"3aaDM8JRvILD6SslQgA=\"},\"Timestamp\":\"2022-10-30T12:33:44.385Z\",\"SignatureVersion\":\"1\",\"Signature\":\"4jz2NpwkVDCX4Q==\",\"SigningCertURL\":\"https://sns.us-east-1.amazonaws.com/SimpleNotificationService-56e67fcb4.pem\",\"UnsubscribeURL\":\"https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:352283894008:test-AlertLogicS3SNSTopic:35f45ee3-20fb-42cbf\"}",
+            awsRegion: "us-east-1"
+        }
+    ]
+};
+
 module.exports = {
     initProcessEnv : initProcessEnv,
     FUNCTION_ARN : FUNCTION_ARN,
@@ -449,5 +459,6 @@ module.exports = {
     S3_CONFIGURATION_FILE_CHANGE : S3_CONFIGURATION_FILE_CHANGE,
     LAMBDA_FUNCTION_CONFIGURATION : LAMBDA_FUNCTION_CONFIGURATION,
     LAMBDA_FUNCTION_CONFIGURATION_CHANGED : LAMBDA_FUNCTION_CONFIGURATION_CHANGED,
-    LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE : LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE
+    LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE : LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE,
+    S3_TEST_EVENT : S3_TEST_EVENT
 };
