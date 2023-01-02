@@ -216,6 +216,21 @@ var setEnv = function(vars, callback) {
     });
 };
 
+var uploadS3Object = function ({ data, key, bucketName }, callback) {
+    var s3 = new AWS.S3();
+    // Setting up S3 upload parameters
+    const parseData = typeof data !== 'string' ? JSON.stringify(data) : data;
+    const bucket = bucketName ? bucketName : process.env.aws_lambda_s3_bucket
+    const params = {
+        Bucket: bucket,
+        Key: key,
+        Body: parseData
+    };
+    // Uploading files to the bucket
+    s3.putObject(params, function (err, data) {
+        return callback(err, data);
+    });
+};
 
 function getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
@@ -253,4 +268,5 @@ module.exports = {
     getMetricStatistics : getMetricStatistics,
     getLambdaMetrics : getLambdaMetrics,
     getKinesisMetrics : getKinesisMetrics,
+    uploadS3Object: uploadS3Object
 };
