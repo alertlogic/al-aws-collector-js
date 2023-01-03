@@ -85,9 +85,48 @@ function errorMsg(code, message) {
         details: message
     };
 }
+/**
+ * 
+ * @param {*} error 
+ * @returns httpErrorCode
+ */
+function extractHttpErrorCode(error) {
+    let httpErrorCode;
+    if (typeof (error) === 'string') {
+        let errorString;
+        if (error.includes(':')) {
+            const splitErrorMessage = error.split(':');
+            errorString = splitErrorMessage[1].replace(/ /, '');
+        } else errorString = error;
+
+        httpErrorCode = parseInt(errorString.slice(0, 3));
+    } else {
+        httpErrorCode = error.statusCode;
+    }
+    return httpErrorCode;
+}
+
+/**
+ * 
+ * @param {*} code 
+ * @param {*} message 
+ * @param {*} httpErrorCode 
+ * @returns errorObject
+ */
+function formatError(code, exception, type) {
+    const httpCode = extractHttpErrorCode(exception);
+    let errorObject = {
+        errorCode: code,
+        message: `${code} failed at ${type} : ${exception.message}`,
+        httpErrorCode: httpCode
+    }
+    return errorObject;
+}
 
 module.exports = {
     errorMsg : errorMsg,
-    checkCloudFormationStatus : checkCloudFormationStatus
+    checkCloudFormationStatus : checkCloudFormationStatus,
+    extractHttpErrorCode: extractHttpErrorCode,
+    formatError: formatError
 };
 
