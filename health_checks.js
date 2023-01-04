@@ -93,13 +93,11 @@ function errorMsg(code, message) {
 function extractHttpErrorCode(error) {
     let httpErrorCode;
     if (typeof (error) === 'string') {
-        let errorString;
-        if (error.includes(':')) {
+        httpErrorCode = parseInt(error.slice(0, 3));
+        if (isNaN(httpErrorCode) && error.includes(':')) {
             const splitErrorMessage = error.split(':');
-            errorString = splitErrorMessage[1].replace(/ /, '');
-        } else errorString = error;
-
-        httpErrorCode = parseInt(errorString.slice(0, 3));
+            httpErrorCode = parseInt(splitErrorMessage[1].replace(/ /, '').slice(0, 3));
+        }
     } else {
         httpErrorCode = error.statusCode;
     }

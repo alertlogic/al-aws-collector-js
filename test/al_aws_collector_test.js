@@ -733,7 +733,8 @@ describe('al_aws_collector tests', function() {
                 collector.send(data, false, '', function(error) {
                     sinon.assert.calledOnce(ingestCLogmsgsStub);
                     sinon.assert.calledWith(ingestCLogmsgsStub, data);
-                    assert.equal(error, `AWSC0018 failed to send the logmsgs : ${logmsgErr.message}`);
+                    assert.equal(error.httpErrorCode, 400);
+                    assert.equal(error.message, `AWSC0018 failed at logmsgs : ${logmsgErr.message}`);
                     done();   
                 });
             });
