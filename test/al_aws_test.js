@@ -215,6 +215,50 @@ describe('al_aws Tests', function() {
             });
         }).timeout(120000);
     });
+
+    describe('uploadS3Object() function', () => {
+
+        var s3PutObjectResponse = {
+            ETag: '3a78d463e605c66b1b51725500b9dd72',
+            LastModified: '2017-11-21T16:40:00Z'
+        };
+
+        let bucketParameters = {
+            data: colMock.S3_TEST_DATA,
+            key: colMock.S3_CONFIGURATION_FILE_NAME
+        };
+
+        beforeEach(() => {
+            colMock.initProcessEnv();
+        });
+        afterEach(() => {
+            AWS.restore('S3', 'putObject');
+        });
+
+        it('error', () => {
+            process.env.aws_lambda_s3_bucket = undefined;
+            AWS.mock('S3', 'putObject', function (params, callback) {
+                return callback("AWSC0108 s3 bucketName can not be null or undefined");
+            });
+
+            m_alAws.uploadS3Object(bucketParameters, (err, response) => {
+                assert.equal(err, 'AWSC0108 s3 bucketName can not be null or undefined');
+            });
+        });
+
+        it('uploaded file successfully ', () => {
+            AWS.mock('S3', 'putObject', function (params, callback) {
+                assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
+                assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
+                return callback(null, s3PutObjectResponse);
+            });
+
+            bucketParameters.bucketName = colMock.S3_CONFIGURATION_BUCKET;
+            m_alAws.uploadS3Object(bucketParameters, (err, response) => {
+                assert.equal(s3PutObjectResponse, response);
+            });
+        });
+    });
 });
 
 

@@ -416,6 +416,8 @@ const CHECKIN_SNS_TRIGGER = {
     ]
 };
 
+const S3_TEST_DATA = { "actor": { "id": "00u912a1q9R7n6IsA1t7", "type": "User", "displayName": "Test user", "detailEntry": null }, "client": { "userAgent": { "rawUserAgent": "@okta/okta-sdk-nodejs/4.1.0 node/14.20.0 linux/4.14.255-296-236.539.amzn2.aarch64", "os": "Linux", "browser": "UNKNOWN" }, "zone": "null", "device": "Computer", "id": null, "ipAddress": "100.24.126.148", "geographicalContext": null }, "legacyEventType": "core.framework.ratelimit.warning", "uuid": "d0b4a036-87a7-11ed-a582-0f7bbc99b2fd", "version": "0", "target": [{ "id": "/api/v1/logs", "type": "URL Pattern" }, { "id": "efc4e90e-6b87-3d2c-827e-815acbd1cfe1", "type": "Bucket Uuid" }] };
+
 module.exports = {
     initProcessEnv : initProcessEnv,
     FUNCTION_ARN : FUNCTION_ARN,
@@ -449,5 +451,6 @@ module.exports = {
     S3_CONFIGURATION_FILE_CHANGE : S3_CONFIGURATION_FILE_CHANGE,
     LAMBDA_FUNCTION_CONFIGURATION : LAMBDA_FUNCTION_CONFIGURATION,
     LAMBDA_FUNCTION_CONFIGURATION_CHANGED : LAMBDA_FUNCTION_CONFIGURATION_CHANGED,
-    LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE : LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE
+    LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE : LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE,
+    S3_TEST_DATA: S3_TEST_DATA
 };

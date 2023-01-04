@@ -220,16 +220,20 @@ var uploadS3Object = function ({ data, key, bucketName }, callback) {
     var s3 = new AWS.S3();
     // Setting up S3 upload parameters
     const parseData = typeof data !== 'string' ? JSON.stringify(data) : data;
-    const bucket = bucketName ? bucketName : process.env.aws_lambda_s3_bucket
-    const params = {
-        Bucket: bucket,
-        Key: key,
-        Body: parseData
-    };
-    // Uploading files to the bucket
-    s3.putObject(params, function (err, data) {
-        return callback(err, data);
-    });
+    let bucket = bucketName ? bucketName : process.env.aws_lambda_s3_bucket;
+    if (bucket) {
+        const params = {
+            Bucket: bucket,
+            Key: key,
+            Body: parseData
+        };
+        // Uploading files to the bucket
+        s3.putObject(params, function (err, data) {
+            return callback(err, data);
+        });
+    } else {
+        return callback(`AWSC0108 s3 bucketName can not be null or undefined`);
+    }
 };
 
 function getRandomIntInclusive(min, max) {
