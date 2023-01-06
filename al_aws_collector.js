@@ -668,7 +668,8 @@ class AlAwsCollector {
                     return callback(null, resp);
                 })
                 .catch(exception => {
-                    return callback(exception);
+                    const error = m_healthChecks.formatError('AWSC0020', exception, AlAwsCollector.IngestTypes.VPCFLOW);
+                    return callback(error);
                 });
                 break;
             case AlAwsCollector.IngestTypes.LOGMSGS:
@@ -678,7 +679,8 @@ class AlAwsCollector {
                 })
                 .catch(exception => {
                     logger.debug(exception);
-                    return callback(`AWSC0018 failed to send the logmsgs : ${exception.message}`);
+                    const error = m_healthChecks.formatError('AWSC0018', exception, AlAwsCollector.IngestTypes.LOGMSGS);
+                    return callback(error);
                 });
                 break;
             case AlAwsCollector.IngestTypes.LMCSTATS:
@@ -688,7 +690,8 @@ class AlAwsCollector {
                 })
                 .catch(exception => {
                     logger.debug(exception);
-                    return callback(`AWSC0019 failed to send the lmcstats : ${exception.message}`);
+                    const error = m_healthChecks.formatError('AWSC0019', exception, AlAwsCollector.IngestTypes.LMCSTATS);
+                    return callback(error);
                 });
                 break;
             default:
