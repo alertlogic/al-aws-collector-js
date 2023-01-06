@@ -4,7 +4,7 @@
  *
  * Helper class for lambda function utility and helper methods.
  *
- * Last message ID: AWSC0107
+ * Last message ID: AWSC0108
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -228,9 +228,7 @@ var uploadS3Object = function ({ data, key, bucketName }, callback) {
             Body: parseData
         };
         // Uploading files to the bucket
-        s3.putObject(params, function (err, data) {
-            return callback(err, data);
-        });
+        return s3.putObject(params, callback);
     } else {
         return callback(`AWSC0108 s3 bucketName can not be null or undefined`);
     }
