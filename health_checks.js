@@ -12,8 +12,7 @@ const AWS = require('aws-sdk');
 
 const m_alAws = require('./al_aws');
 const INGEST_INVALID_ENCODING = {
-    code: 400,
-    message: 'body encoding invalid'
+    code: 400
 }
 /**
  * checks status of CF, returns error in case if it's in failed state, returns error.
@@ -132,7 +131,7 @@ function formatError(code, exception, type) {
  * @returns 
  */
 function handleIngestEncodingInvalidError(err, { data, key, bucketName }, callback) {
-    if (err.httpErrorCode === INGEST_INVALID_ENCODING.code && err.message.includes(INGEST_INVALID_ENCODING.message)) {
+    if (err.httpErrorCode === INGEST_INVALID_ENCODING.code) {
         return m_alAws.uploadS3Object({ data, key, bucketName }, callback);
     }
     else return callback(err);
