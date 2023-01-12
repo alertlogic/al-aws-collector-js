@@ -218,9 +218,9 @@ var setEnv = function(vars, callback) {
 
 var uploadS3Object = function ({ data, key, bucketName }, callback) {
     var s3 = new AWS.S3();
-    // Setting up S3 upload parameters
+    // Setting up S3 putObject parameters
     const parseData = typeof data !== 'string' ? JSON.stringify(data) : data;
-    let bucket = bucketName ? bucketName : process.env.aws_lambda_s3_bucket;
+    let bucket = bucketName ? bucketName : process.env.dL_s3_bucket_name;
     if (bucket) {
         const params = {
             Bucket: bucket,
