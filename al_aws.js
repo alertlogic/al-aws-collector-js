@@ -4,7 +4,7 @@
  *
  * Helper class for lambda function utility and helper methods.
  *
- * Last message ID: AWSC0107
+ * Last message ID: AWSC0108
  * @end
  * -----------------------------------------------------------------------------
  */
@@ -216,6 +216,23 @@ var setEnv = function(vars, callback) {
     });
 };
 
+var uploadS3Object = function ({ data, key, bucketName }, callback) {
+    var s3 = new AWS.S3();
+    // Setting up S3 putObject parameters
+    const parseData = typeof data !== 'string' ? JSON.stringify(data) : data;
+    let bucket = bucketName ? bucketName : process.env.dl_s3_bucket_name;
+    if (bucket) {
+        const params = {
+            Bucket: bucket,
+            Key: key,
+            Body: parseData
+        };
+        // Uploading files to the bucket
+        return s3.putObject(params, callback);
+    } else {
+        return callback(`AWSC0108 s3 bucketName can not be null or undefined`);
+    }
+};
 
 function getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
@@ -253,4 +270,5 @@ module.exports = {
     getMetricStatistics : getMetricStatistics,
     getLambdaMetrics : getLambdaMetrics,
     getKinesisMetrics : getKinesisMetrics,
+    uploadS3Object: uploadS3Object
 };
