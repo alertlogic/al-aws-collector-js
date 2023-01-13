@@ -132,7 +132,11 @@ function formatError(code, exception, type) {
  */
 function handleIngestEncodingInvalidError(err, { data, key, bucketName }, callback) {
     if (err.httpErrorCode === INGEST_INVALID_ENCODING.code) {
-        return m_alAws.uploadS3Object({ data, key, bucketName }, callback);
+        let bucket = bucketName ? bucketName : process.env.dl_s3_bucket_name;
+        if (bucket) {
+            return m_alAws.uploadS3Object({ data, key, bucket }, callback);
+        }
+        else return callback(null);
     }
     else return callback(err);
 }
