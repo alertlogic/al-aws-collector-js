@@ -235,11 +235,11 @@ describe('al_aws Tests', function() {
             AWS.restore('S3', 'putObject');
         });
 
-        it('if bucket name is undefined/null return ok', () => {
+        it('if bucket name is undefined/null return error', () => {
             process.env.aws_lambda_s3_bucket = undefined;
 
             m_alAws.uploadS3Object(bucketParameters, (err, response) => {
-                assert.equal(err, null);
+                assert.notEqual(err, null);
             });
         });
 

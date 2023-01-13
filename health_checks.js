@@ -134,9 +134,9 @@ function handleIngestEncodingInvalidError(err, { data, key, bucketName }, callba
     if (err.httpErrorCode === INGEST_INVALID_ENCODING.code) {
         let bucket = bucketName ? bucketName : process.env.dl_s3_bucket_name;
         if (bucket) {
-            return m_alAws.uploadS3Object({ data, key, bucketName }, callback);
+            return m_alAws.uploadS3Object({ data, key, bucket }, callback);
         }
-        else return callback(`ALAWS00003 s3 bucketName can not be null or undefined`);
+        else return callback(null);
     }
     else return callback(err);
 }
