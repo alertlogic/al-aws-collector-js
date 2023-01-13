@@ -4,7 +4,7 @@
  *
  * Helper class for lambda function utility and helper methods.
  *
- * Last message ID: AWSC0108
+ * Last message ID: AWSC0107
  * @end
  * -----------------------------------------------------------------------------
  */
