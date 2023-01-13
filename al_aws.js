@@ -220,17 +220,16 @@ var uploadS3Object = function ({ data, key, bucketName }, callback) {
     var s3 = new AWS.S3();
     // Setting up S3 putObject parameters
     const parseData = typeof data !== 'string' ? JSON.stringify(data) : data;
-    let bucket = bucketName ? bucketName : process.env.dl_s3_bucket_name;
-    if (bucket) {
+    if (bucketName) {
         const params = {
-            Bucket: bucket,
+            Bucket: bucketName,
             Key: key,
             Body: parseData
         };
         // Uploading files to the bucket
         return s3.putObject(params, callback);
     } else {
-        return callback(`AWSC0108 s3 bucketName can not be null or undefined`);
+        return callback(null);
     }
 };
 

@@ -235,14 +235,11 @@ describe('al_aws Tests', function() {
             AWS.restore('S3', 'putObject');
         });
 
-        it('error', () => {
+        it('if bucket name is undefined/null return ok', () => {
             process.env.aws_lambda_s3_bucket = undefined;
-            AWS.mock('S3', 'putObject', function (params, callback) {
-                return callback("AWSC0108 s3 bucketName can not be null or undefined");
-            });
 
             m_alAws.uploadS3Object(bucketParameters, (err, response) => {
-                assert.equal(err, 'AWSC0108 s3 bucketName can not be null or undefined');
+                assert.equal(err, null);
             });
         });
 
