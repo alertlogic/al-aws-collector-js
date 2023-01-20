@@ -137,7 +137,7 @@ function handleIngestEncodingInvalidError(err, { data, key, bucketName }, callba
         if (bucket) {
             m_alAws.uploadS3Object({ data, key, bucket }, (err) => {
                 if (err) {
-                    logger.warn(`ALAWS00003 error while uploading the object ${JSON.stringify(err)}`);
+                    logger.warn(`ALAWS00003 error while uploading the ${key} object in ${bucket} bucket : ${JSON.stringify(err)}`);
                 }
                 return callback(null);
             });
