@@ -11,6 +11,7 @@
 const AWS = require('aws-sdk');
 
 const m_alAws = require('./al_aws');
+const logger = require('./logger');
 const INGEST_INVALID_ENCODING = {
     code: 400
 }
@@ -134,7 +135,12 @@ function handleIngestEncodingInvalidError(err, { data, key, bucketName }, callba
     if (err.httpErrorCode === INGEST_INVALID_ENCODING.code) {
         let bucket = bucketName ? bucketName : process.env.dl_s3_bucket_name;
         if (bucket) {
-            return m_alAws.uploadS3Object({ data, key, bucket }, callback);
+            m_alAws.uploadS3Object({ data, key, bucket }, (err) => {
+                if (err) {
+                    logger.warn(`ALAWS00003 error while uploading the ${key} object in ${bucket} bucket : ${JSON.stringify(err)}`);
+                }
+                return callback(null);
+            });
         }
         else return callback(null);
     }
