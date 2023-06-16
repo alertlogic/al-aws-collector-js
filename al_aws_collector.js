@@ -26,7 +26,7 @@ const logger = require('./logger');
 
 var AIMS_DECRYPTED_CREDS = null;
 
-const AL_SERVICES = ['ingest', 'azcollect'];
+const AL_SERVICES = ['ingest', 'azcollect', 'collector_status'];
 
 const NOUPDATE_CONFIG_PARAMS = [
     'Architectures',
@@ -127,6 +127,7 @@ class AlAwsCollector {
         this._endpointsc = new m_alCollector.EndpointsC(process.env.al_api, this._aimsc);
         this._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, this._aimsc, 'aws', collectorType);
         this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
+        this._collectorStatusc = new m_alCollector.CollectorStatusC(process.env.collector_status_api, this._aimsc);
         this._formatFun = formatFun;
         this._customHealthChecks = healthCheckFuns;
         this._customStatsFuns = statsFuns;
@@ -175,14 +176,15 @@ class AlAwsCollector {
     }
 
 
-    done(error , streamType, sendStatus = true) {
+    done(error, streamType, sendStatus = true) {
         let context = this._invokeContext;
         if (error) {
             const errorString = this.stringifyError(error);
             // TODO: fix stream name reporting
-            const status = this.prepareErrorStatus(errorString, 'none', streamType);
+            const stream = streamType ? streamType : this._applicationId ? this._applicationId : this._ingestType;
+            const status = this.setCollectorStatus(stream, errorString);
             if (sendStatus) {
-                this.sendStatus(status, () => {
+                this.sendCollectorStatus(stream, status, () => {
                     context.fail(errorString);
                 });
             } else {
@@ -192,41 +194,34 @@ class AlAwsCollector {
             return context.succeed();
         }
     }
-    prepareHealthyStatus(streamName = 'none', collectionType) {
-        return {
-            stream_name: streamName,
-            status_type: 'ok',
-            stream_type: 'status',
-            message_type: 'collector_status',
-            host_uuid: this._collectorId,
-            data: [],
-            agent_type: this._collectorType,
-            collection_type: collectionType ? collectionType : this._ingestType,
-            timestamp: moment().unix()
-        };
-    }
-    
-    prepareErrorStatus(errorString, streamName = 'none', collectionType, errorCode) {
-        let cType = collectionType ? collectionType : this._ingestType;
-        let errorData = errorCode ? 
-            [
-                {error: errorString},
-                {code: errorCode}
-            ] :
-            [
-                {error: errorString}
-            ];
-        return {
-            stream_name: streamName,
-            status_type: 'error',
-            stream_type: 'status',
-            message_type: 'collector_status',
-            host_uuid: this._collectorId,
-            data: errorData,
-            agent_type: this._collectorType,
-            collection_type: cType,
-            timestamp: moment().unix()
-        };
+
+    setCollectorStatus(collectorStream, errorString, errorCode) {
+        const stream = collectorStream ? collectorStream : this._applicationId;
+        const status = errorString ? 'error' : 'ok'
+        let collectorStatusData = {
+            status: status,
+            inst_type: 'collector',
+            stream: stream,
+            status_id: this._collectorId,
+            timestamp: moment().unix(),
+            reported_by: this._collectorType,
+            collection_type: this._applicationId
+        }
+
+        if (errorString) {
+            const errorData = errorCode ?
+                [
+                    { error: errorString },
+                    { code: errorCode }
+                ] :
+                [
+                    { error: errorString }
+                ];
+            collectorStatusData.errorinfo = {
+                details: errorData
+            }
+        }
+        return collectorStatusData;
     }
 
     stringifyError(error) {
@@ -279,8 +274,9 @@ class AlAwsCollector {
                     return callback(mapErr);
                 } else {
                     var endpoints = {
-                        ingest_api : mapResult[0].ingest,
-                        azcollect_api : mapResult[1].azcollect
+                        ingest_api: mapResult[0].ingest,
+                        azcollect_api: mapResult[1].azcollect,
+                        collector_status_api: mapResult[2].collector_status
                     };
                     return m_alAws.setEnv(endpoints, callback);
                 }
@@ -306,35 +302,9 @@ class AlAwsCollector {
 
         async.waterfall([
             (asyncCallback) => {
-                const {
-                    azcollect_api,
-                    ingest_api
-                } = process.env;
-
-                if(!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined"){
-                    // handling errors like this because the other unit tests seem to indicate that
-                    // the collector should register even if there is an error in getting the endpoints.
-                    this.updateEndpoints((err, newConfig) => {
-                        if(err){
-                            logger.warn(`AWSC0002 Error updating endpoints ${err}`);
-                        } else {
-                            // reassign env vars because the config change occurs in the same run in registration.
-                            const {
-                                Environment: {
-                                    Variables
-                                }
-                            } = newConfig;
-
-                            Object.assign(process.env, Variables);
-                            this._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, this._aimsc, 'aws', this._collectorType);
-                            this._ingestc = new m_alCollector.IngestC(process.env.ingest_api, this._aimsc, 'lambda_function');
-                        }
-
-                        asyncCallback(null);
-                    });
-                } else{
-                    asyncCallback(null);
-                }
+                this.updateApiEndpoint((err) => {
+                    return asyncCallback(err);
+                })
             },
             (asyncCallback) => {
                 this._azcollectc.register(regValues)
@@ -354,35 +324,9 @@ class AlAwsCollector {
         var collector = this;
         async.waterfall([
             function (asyncCallback) {
-                const {
-                    azcollect_api,
-                    ingest_api
-                } = process.env;
-
-                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
-                    // handling errors like this because the other unit tests seem to indicate that
-                    // the collector should handle check in even if there is an error in getting the endpoints.
-                    collector.updateEndpoints((err, newConfig) => {
-                        if (err) {
-                            logger.warn(`AWSC0014 Error updating endpoints ${err}`);
-                        } else {
-                            // reassign env vars because the config change occurs in the same run in handle check in.
-                            const {
-                                Environment: {
-                                    Variables
-                                }
-                            } = newConfig;
-
-                            Object.assign(process.env, Variables);
-                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
-                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
-                        }
-
-                        asyncCallback(null);
-                    });
-                } else {
-                    asyncCallback(null);
-                }
+                collector.updateApiEndpoint((err) => {
+                    return asyncCallback(err);
+                })
             },
             function (asyncCallback) {
                 if (!collector.registered) {
@@ -427,20 +371,21 @@ class AlAwsCollector {
                 function (asyncCallback) {
                     if (checkinParts[0].status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0
                         && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
-                        let streamSpecificStatus = [];
                         if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
-                            collectorStreams.map(streamType => {
-                                let okStatus = collector.prepareHealthyStatus('none', `${collector._applicationId}_${streamType}`);
-                                streamSpecificStatus.push(okStatus);
+                            async.each(collectorStreams, function (streamType, eachCallback) {
+                                let okStatus = collector.setCollectorStatus(streamType);
+                                collector.sendCollectorStatus(streamType, okStatus, () => {
+                                    eachCallback(null);
+                                });
                             });
                         } else {
-                            let okStatus = collector.prepareHealthyStatus();
-                            streamSpecificStatus.push(okStatus);
+                            const stream = collector._applicationId ? collector._applicationId : collector._ingestType;
+                            let okStatus = collector.setCollectorStatus(stream);
+                            // make api call to send status ok
+                            collector.sendCollectorStatus(stream, okStatus, () => {
+                                return asyncCallback(null);
+                            });
                         }
-                        // make api call to send status ok
-                        collector.sendStatus(streamSpecificStatus, () => {
-                            return asyncCallback(null);
-                        });
                     }
                     else {
                         return asyncCallback(null);
@@ -597,37 +542,77 @@ class AlAwsCollector {
         ],
             callback);
     }
-    
+
+    updateApiEndpoint(asyncCallback) {
+        const collector = this;
+        const {
+            azcollect_api,
+            ingest_api,
+            collector_status_api
+        } = process.env;
+        if (!azcollect_api || !ingest_api || !collector_status_api || azcollect_api === "undefined" || ingest_api === "undefined" || collector_status_api === "undefined") {
+            // handling errors like this because the other unit tests seem to indicate that
+            // the collector should send status even if there is an error in getting the endpoints.
+            collector.updateEndpoints((err, newConfig) => {
+                if (err) {
+                    logger.warn(`AWSC0016 Error updating endpoints ${err}`);
+                } else {
+                    // reassign env vars because the config change occurs in the same run in sending status.
+                    const {
+                        Environment: {
+                            Variables
+                        }
+                    } = newConfig;
+                    Object.assign(process.env, Variables);
+                    collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
+                    collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
+                    collector._collectorStatusc = new m_alCollector.CollectorStatusC(process.env.collector_status_api, collector._aimsc)
+                }
+                return asyncCallback(null);
+            });
+        } else {
+            return asyncCallback(null);
+        }
+    }
+    sendCollectorStatus(collectorStatusStream, status, callback) {
+        let collector = this;
+        async.waterfall([
+            (asyncCallback) => {
+                collector.updateApiEndpoint((err) => {
+                    return asyncCallback(err);
+                })
+            },
+            (asyncCallback) => {
+                if (!status || !collector.registered) {
+                    return asyncCallback(null);
+                } else {
+                    collector._collectorStatusc.sendStatus(collector.collector_id, collectorStatusStream, status)
+                        .then(resp => {
+                            return asyncCallback(null, resp);
+                        })
+                        .catch(exception => {
+                            console.log(`exception ${JSON.stringify(exception)}`);
+                            if (exception.statusCode === 304) {
+                                return asyncCallback(null);
+                            }
+                            else {
+                                logger.warn(`AWSC0021 Collector status send failed: ${exception.message}`);
+                                logger.debug(exception);
+                                return asyncCallback(exception.message);
+                            }
+                        });
+                }
+            }
+        ],
+            callback);
+    }
     send(data, compress = true, ingestType, callback) {
         var collector = this;
         async.waterfall([
             (asyncCallback) => {
-                const {
-                    azcollect_api,
-                    ingest_api
-                } = process.env;
-                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
-                    // handling errors like this because the other unit tests seem to indicate that
-                    // the collector should send data even if there is an error in getting the endpoints.
-                    collector.updateEndpoints((err, newConfig) => {
-                        if (err) {
-                            logger.warn(`AWSC0015 Error updating endpoints ${err}`);
-                        } else {
-                            // reassign env vars because the config change occurs in the same run in sending data.
-                            const {
-                                Environment: {
-                                    Variables
-                                }
-                            } = newConfig;
-                            Object.assign(process.env, Variables);
-                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
-                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
-                        }
-                        asyncCallback(null);
-                    });
-                } else {
-                    asyncCallback(null);
-                }
+                collector.updateApiEndpoint((err) => {
+                    return asyncCallback(err);
+                });
             },
             (asyncCallback) => {
                 if (!data) {

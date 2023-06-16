@@ -34,11 +34,16 @@ function setAlServiceStub() {
                             ingest : 'new-ingest-endpoint'
                     };
                         break;
-                case '/residency/default/services/azcollect/endpoint':
-                    ret = {
-                        azcollect : 'new-azcollect-endpoint'
-                    };
-                    break;
+                    case '/residency/default/services/azcollect/endpoint':
+                        ret = {
+                            azcollect: 'new-azcollect-endpoint'
+                        };
+                        break;
+                    case '/residency/default/services/collector_status/endpoint':
+                        ret = {
+                            collector_status: 'new-collector-status-endpoint'
+                        };
+                        break;
                 default:
                     break;
                 }
@@ -51,6 +56,12 @@ function setAlServiceStub() {
                     return resolve();
                 });
             });
+    alserviceStub.put = sinon.stub(m_alCollector.AlServiceC.prototype, 'put').callsFake(
+        function fakeFn(path, extraOptions) {
+            return new Promise(function (resolve, reject) {
+                return resolve();
+            });
+        });
     alserviceStub.del = sinon.stub(m_alCollector.AlServiceC.prototype, 'deleteRequest').callsFake(
             function fakeFn(path) {
                 return new Promise(function(resolve, reject) {
@@ -72,6 +83,12 @@ function setAlServiceErrorStub() {
                     return reject('post error');
                 });
             });
+    alserviceStub.put = sinon.stub(m_alCollector.AlServiceC.prototype, 'put').callsFake(
+        function fakeFn(path, extraOptions) {
+            return new Promise(function (resolve, reject) {
+                return reject('put error');
+            });
+        });
     alserviceStub.del = sinon.stub(m_alCollector.AlServiceC.prototype, 'deleteRequest').callsFake(
             function fakeFn(path) {
                 return new Promise(function(resolve, reject) {
@@ -83,6 +100,7 @@ function setAlServiceErrorStub() {
 function restoreAlServiceStub() {
     alserviceStub.get.restore();
     alserviceStub.post.restore();
+    alserviceStub.put.restore();
     alserviceStub.del.restore();
 }
 
@@ -123,7 +141,8 @@ function mockLambdaEndpointsUpdateConfiguration() {
         assert.deepEqual(params.Environment, {
             Variables: {
                 ingest_api: 'new-ingest-endpoint',
-                azcollect_api: 'new-azcollect-endpoint'
+                azcollect_api: 'new-azcollect-endpoint',
+                collector_status_api: 'new-collector-status-endpoint'
             }
         });
         return callback(null, params);
@@ -134,10 +153,12 @@ function mockSetEnvStub() {
     setEnvStub = sinon.stub(m_al_aws, 'setEnv').callsFake((vars, callback)=>{
         const {
             ingest_api,
-            azcollect_api
+            azcollect_api,
+            collector_status_api
         } = vars;
         process.env.ingest_api = ingest_api ? ingest_api : process.env.ingest_api;
         process.env.azcollect_api = azcollect_api ? azcollect_api : process.env.azcollect_api;
+        process.env.collector_status_api = collector_status_api ? collector_status_api : process.env.collector_status_api;
         const returnBody = {
             Environment: {
                 Varaibles: vars
@@ -221,13 +242,15 @@ describe('al_aws_collector tests', function() {
         mockLambdaEndpointsUpdateConfiguration();
         const envIngestApi = process.env.ingest_api;
         const envAzcollectApi = process.env.ingest_api;
+        const envCollectorStatusApi = process.env_collector_status_api;
         process.env.ingest_api = undefined;
         process.env.azcollect_api = undefined;
+        process.env.collector_status_api = undefined;
         var mockContext = {
             invokedFunctionArn : colMock.FUNCTION_ARN,
             succeed : () => {
                 sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
-                sinon.assert.calledTwice(alserviceStub.get);
+                sinon.assert.calledThrice(alserviceStub.get);
                 done();
             }
         };
@@ -242,10 +265,12 @@ describe('al_aws_collector tests', function() {
                 sinon.assert.calledOnce(spy);
                 assert.ok(process.env.ingest_api);
                 assert.ok(process.env.azcollect_api);
+                assert.ok(process.env.collector_status_api);
                 assert.equal(process.env.ingest_api, "new-ingest-endpoint");
                 assert.equal(process.env.azcollect_api, "new-azcollect-endpoint");
                 process.env.ingest_api = envIngestApi;
                 process.env.azcollect_api = envAzcollectApi;
+                process.env.collector_status_api = envCollectorStatusApi;
             });
         });
     });
@@ -402,15 +427,15 @@ describe('al_aws_collector tests', function() {
                     Type: 'Checkin'
                 };
 
-                let prepareHealthyStatusSpy = sinon.spy(collector, 'prepareHealthyStatus');
-                let sendStatusSpy = sinon.spy(collector, 'sendStatus');
+                let setCollectorStatusHealthySpy = sinon.spy(collector, 'setCollectorStatus');
+                let sendCollectorStatusSpy = sinon.spy(collector, 'sendCollectorStatus');
 
                 let promise = new Promise(function (resolve, reject) {
                     return resolve(collector.handleEvent(testEvent));
                 });
                 promise.then((result) => {
-                    sinon.assert.notCalled(prepareHealthyStatusSpy);
-                    sinon.assert.notCalled(sendStatusSpy);
+                    sinon.assert.notCalled(setCollectorStatusHealthySpy);
+                    sinon.assert.notCalled(sendCollectorStatusSpy);
                 });
             });
         });
@@ -464,15 +489,15 @@ describe('al_aws_collector tests', function() {
                     RequestType: 'ScheduledEvent',
                     Type: 'Checkin'
                 };
-                const prepareHealthyStatusSpy = sinon.spy(collector, 'prepareHealthyStatus');
-                const sendStatusSpy = sinon.spy(collector, 'sendStatus');
+                const setCollectorStatusSpy = sinon.spy(collector, 'setCollectorStatus');
+                const sendCollectorStatusSpy = sinon.spy(collector, 'sendCollectorStatus');
 
                 let promise = new Promise(function (resolve, reject) {
                     return resolve(collector.handleEvent(testEvent));
                 });
                 promise.then((result) => {
-                    sinon.assert.notCalled(prepareHealthyStatusSpy);
-                    sinon.assert.notCalled(sendStatusSpy);
+                    sinon.assert.notCalled(setCollectorStatusSpy);
+                    sinon.assert.notCalled(sendCollectorStatusSpy);
                 });
             });
         });
@@ -616,6 +641,57 @@ describe('al_aws_collector tests', function() {
             collector.updateEndpoints(function(error) {
                 assert.equal(error, undefined);
                 done();
+            });
+        });
+    });
+    describe('mocking collectorStatusC', function () {
+        var sendCollectorStatusStub;
+        beforeEach(function () {
+            sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
+                function fakeFn(statusId, stream, data) {
+                    return new Promise(function (resolve, reject) {
+                        resolve(null);
+                    });
+                });
+        });
+        afterEach(function () {
+            sendCollectorStatusStub.restore();
+        });
+        it('send error status successfully', function (done) {
+            var mockCtx = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
+                functionName: colMock.FUNCTION_NAME,
+                fail: function (error) {
+                    sinon.assert.calledOnce(sendCollectorStatusStub);
+                    done();
+                },
+                succeed: function () {
+                    assert.fail();
+                }
+            };
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    mockCtx, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                collector.done({ message: 'some_error' }, null, true);
+            });
+        });
+
+        it('fail invocation without status send', function (done) {
+            var mockCtx = {
+                invokedFunctionArn: colMock.FUNCTION_ARN,
+                functionName: colMock.FUNCTION_NAME,
+                fail: function (error) {
+                    sinon.assert.notCalled(sendCollectorStatusStub);
+                    done();
+                },
+                succeed: function () {
+                    assert.fail();
+                }
+            };
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    mockCtx, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
+                collector.done({ message: 'some_error' }, null, false);
             });
         });
     });
@@ -819,7 +895,6 @@ describe('al_aws_collector tests', function() {
                     invokedFunctionArn: colMock.FUNCTION_ARN,
                     functionName: colMock.FUNCTION_NAME,
                     fail: function (error) {
-                        sinon.assert.calledOnce(ingestCAgentstatusStub);
                         done();
                     },
                     succeed: function () {
@@ -829,28 +904,14 @@ describe('al_aws_collector tests', function() {
             AlAwsCollector.load().then(function (creds) {
                 var collector = new AlAwsCollector(
                         mockCtx, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
-                collector.done({message : 'some_error'}, null, true);
+                collector.sendStatus({ message: 'some_error' }, function (error) {
+                    sinon.assert.calledOnce(ingestCAgentstatusStub);
+                    done();
+                });
             });
         });
         
-        it('fail invocation without status send', function (done) {
-            var mockCtx = {
-                    invokedFunctionArn: colMock.FUNCTION_ARN,
-                    functionName: colMock.FUNCTION_NAME,
-                    fail: function (error) {
-                        sinon.assert.notCalled(ingestCAgentstatusStub);
-                        done();
-                    },
-                    succeed: function () {
-                        assert.fail();
-                    }
-                };
-            AlAwsCollector.load().then(function (creds) {
-                var collector = new AlAwsCollector(
-                        mockCtx, 'paws', AlAwsCollector.IngestTypes.LOGMSGS, '1.0.0', creds);
-                collector.done({message : 'some_error'}, null, false);
-            });
-        });
+        
     });
     
     describe('mocking send', function() {
@@ -875,6 +936,90 @@ describe('al_aws_collector tests', function() {
                     assert.ifError(error);
                     sinon.assert.calledOnce(sendStub);
                     sinon.assert.calledWith(sendStub, data);
+                    done();
+                });
+            });
+        });
+    });
+
+    describe('mocking sendCollectorStatus', function () {
+        var updateApiEndpoint;
+        var sendCollectorStatusStub;
+        beforeEach(function () {
+            updateApiEndpoint = sinon.stub(AlAwsCollector.prototype, 'updateApiEndpoint').callsFake(function fakeFun(callback) {
+                return callback(null);
+            });
+        });
+
+        afterEach(function () {
+            updateApiEndpoint.restore();
+            sendCollectorStatusStub.restore();
+        });
+
+        it('sendCollectorStatus success', function (done) {
+
+            sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
+                function fakeFn(statusId, stream, data) {
+                    return new Promise(function (resolve, reject) {
+                        resolve(null);
+                    });
+                });
+
+
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
+                var data = 'some-data';
+                const stream = process.env.al_application_id;
+                collector.sendCollectorStatus(stream, data, function (error) {
+                    sinon.assert.calledOnce(updateApiEndpoint);
+                    sinon.assert.calledOnce(sendCollectorStatusStub);
+                    done();
+                });
+            });
+        });
+
+        it('sendCollectorStatus return success if collector status service return 304', function (done) {
+
+            sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
+                function fakeFn(statusId, stream, data) {
+                    return new Promise(function (resolve, reject) {
+                        reject({ message: "Not modified", statusCode: 304 });
+                    });
+                });
+
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
+                var data = 'some-data';
+                const stream = process.env.al_application_id;
+                collector.sendCollectorStatus(stream, data, function (error) {
+                    assert.equal(error, null);
+                    sinon.assert.calledOnce(updateApiEndpoint);
+                    sinon.assert.calledOnce(sendCollectorStatusStub);
+                    done();
+                });
+            });
+        });
+
+        it('sendCollectorStatus return error if collector status service return error except 304(Not Modified)', function (done) {
+            let err = { message: "not able to connect ", statusCode: 503 };
+            sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
+                function fakeFn(statusId, stream, data) {
+                    return new Promise(function (resolve, reject) {
+                        reject(err);
+                    });
+                });
+
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
+                var data = 'some-data';
+                const stream = process.env.al_application_id;
+                collector.sendCollectorStatus(stream, data, function (error) {
+                    assert.deepEqual(error, err.message);
+                    sinon.assert.calledOnce(updateApiEndpoint);
+                    sinon.assert.calledOnce(sendCollectorStatusStub);
                     done();
                 });
             });
@@ -1034,7 +1179,7 @@ describe('al_aws_collector tests', function() {
                '1.0.0',
                colMock.AIMS_TEST_CREDS
            );
-           let spy = sinon.spy(collector, "sendStatus");
+           let spy = sinon.spy(collector, "sendCollectorStatus");
            let promise = new Promise(function (resolve, reject) {
                return resolve(collector.done(stringifialbleError, 'salesforce_EventLogFile'));
            });
