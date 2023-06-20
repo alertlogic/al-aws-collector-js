@@ -553,6 +553,11 @@ class AlAwsCollector {
             callback);
     }
 
+    /**
+     * Function update endpoint api for different AL service if it is not available in env variable.
+     * @param {*} asyncCallback 
+     * @returns 
+     */
     updateApiEndpoint(asyncCallback) {
         const collector = this;
         const {
@@ -584,6 +589,13 @@ class AlAwsCollector {
             return asyncCallback(null);
         }
     }
+
+    /**
+     * Send the status to collector_status service
+     * @param {*} collectorStatusStream - Collector those having streams use that else stream will be application_id
+     * @param {*} status -It's a json object form using setCollectorStatus function
+     * @param {*} callback 
+     */
     sendCollectorStatus(collectorStatusStream, status, callback) {
         let collector = this;
         async.waterfall([
@@ -615,6 +627,7 @@ class AlAwsCollector {
         ],
             callback);
     }
+
     send(data, compress = true, ingestType, callback) {
         var collector = this;
         async.waterfall([
