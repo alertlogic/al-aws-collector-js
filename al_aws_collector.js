@@ -372,12 +372,21 @@ class AlAwsCollector {
                     if (checkinParts[0].status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0
                         && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
                         if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
-                            async.each(collectorStreams, function (streamType, eachCallback) {
-                                let okStatus = collector.setCollectorStatus(streamType);
-                                collector.sendCollectorStatus(streamType, okStatus, () => {
-                                    eachCallback(null);
-                                });
-                            });
+                            async.map(collectorStreams,
+                                function (streamType, eachCallback) {
+                                    let okStatus = collector.setCollectorStatus(streamType);
+                                    collector.sendCollectorStatus(streamType, okStatus, (err, res) => {
+                                        eachCallback(err, res);
+                                    });
+                                },
+                                function (mapErr, mapResult) {
+                                    if (mapErr) {
+                                        logger.warn(`AWSC00021 Collector failed to update the status ${mapErr}`)
+                                     
+                                    } 
+                                    return asyncCallback(null);
+                                }
+                            );
                         } else {
                             const stream = collector._applicationId ? collector._applicationId : collector._ingestType;
                             let okStatus = collector.setCollectorStatus(stream);
@@ -485,6 +494,7 @@ class AlAwsCollector {
             });
     }
 
+    //  Note : Need to remove if no collector is sending status to ingest
     sendStatus(status, callback) {
         let collector = this;
 
@@ -555,7 +565,7 @@ class AlAwsCollector {
             // the collector should send status even if there is an error in getting the endpoints.
             collector.updateEndpoints((err, newConfig) => {
                 if (err) {
-                    logger.warn(`AWSC0016 Error updating endpoints ${err}`);
+                    logger.warn(`AWSC0014 Error updating endpoints ${err}`);
                 } else {
                     // reassign env vars because the config change occurs in the same run in sending status.
                     const {
@@ -591,12 +601,11 @@ class AlAwsCollector {
                             return asyncCallback(null, resp);
                         })
                         .catch(exception => {
-                            console.log(`exception ${JSON.stringify(exception)}`);
                             if (exception.statusCode === 304) {
                                 return asyncCallback(null);
                             }
                             else {
-                                logger.warn(`AWSC0021 Collector status send failed: ${exception.message}`);
+                                logger.warn(`AWSC0015 Collector status send failed: ${exception.message}`);
                                 logger.debug(exception);
                                 return asyncCallback(exception.message);
                             }
