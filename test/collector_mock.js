@@ -7,6 +7,7 @@ const STACK_NAME = 'test-stack-01';
 const AL_API = 'api.global-services.global.alertlogic.com';
 const INGEST_API = 'ingest.global-services.global.alertlogic.com';
 const AZCOLLECT_API = 'azcollect.global-services.global.alertlogic.com';
+const COLLECTOR_STATUS_API = 'collector-status-api.global.alertlogic.com';
 const CTRL_SNS_ARN = 'arn:aws:sns:us-east-1:123456789012:AlCollectorControlSNS';
 
 var initProcessEnv = function() {
@@ -24,6 +25,7 @@ var initProcessEnv = function() {
     process.env.collector_id = 'collector-id';
     process.env.al_application_id = 'app-id';
     process.env.al_control_sns_arn = CTRL_SNS_ARN;
+    process.env.collector_status_api = COLLECTOR_STATUS_API;
 };
 
 
