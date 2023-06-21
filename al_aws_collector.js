@@ -381,8 +381,7 @@ class AlAwsCollector {
                                 },
                                 function (mapErr, mapResult) {
                                     if (mapErr) {
-                                        logger.warn(`AWSC00021 Collector failed to update the status ${mapErr}`)
-                                     
+                                        logger.warn(`AWSC00021 Collector failed to update the status ${mapErr}`);
                                     } 
                                     return asyncCallback(null);
                                 }

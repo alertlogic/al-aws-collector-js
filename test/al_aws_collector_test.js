@@ -335,9 +335,17 @@ describe('al_aws_collector tests', function() {
 
             AlAwsCollector.load().then(function(creds) {
                 let collector = new AlAwsCollector(
-                        mockCtx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS,'1.0.0', creds, undefined, [], []);
+                    mockCtx, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, undefined, [], [], ['Audit.Sharepoint', 'Audit.Exchanges']);
                 const testEvent = colMock.CHECKIN_SNS_TRIGGER;
-                collector.handleEvent(testEvent);
+                var setCollectorStatusHealthySpy = sinon.spy(collector, 'setCollectorStatus');
+                var sendCollectorStatusSpy = sinon.spy(collector, 'sendCollectorStatus');
+                let promise = new Promise(function (resolve, reject) {
+                    return resolve(collector.handleEvent(testEvent));
+                });
+                promise.then((result) => {
+                    sinon.assert.calledOnce(setCollectorStatusHealthySpy);
+                    sinon.assert.calledOnce(sendCollectorStatusSpy);
+                });
             });
         });
 
@@ -1020,6 +1028,49 @@ describe('al_aws_collector tests', function() {
                     assert.deepEqual(error, err.message);
                     sinon.assert.calledOnce(updateApiEndpoint);
                     sinon.assert.calledOnce(sendCollectorStatusStub);
+                    done();
+                });
+            });
+        });
+
+        it('if collector not register, it should not send the status to Collector_status service', function (done) {
+            sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
+                function fakeFn(statusId, stream, data) {
+                    return new Promise(function (resolve, reject) {
+                        resolve(null);
+                    });
+                });
+
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
+                var data = 'some-data';
+                collector._collectorId = undefined;
+                const stream = process.env.al_application_id;
+                collector.sendCollectorStatus(stream, data, function (error) {
+                    assert.equal(error, null);
+                    sinon.assert.calledOnce(updateApiEndpoint);
+                    sinon.assert.notCalled(sendCollectorStatusStub);
+                    done();
+                });
+            });
+        });
+        it('if status is undefined, it should not send the status to Collector_status service', function (done) {
+            sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
+                function fakeFn(statusId, stream, data) {
+                    return new Promise(function (resolve, reject) {
+                        resolve(null);
+                    });
+                });
+
+            AlAwsCollector.load().then(function (creds) {
+                var collector = new AlAwsCollector(
+                    context, 'cwe', AlAwsCollector.IngestTypes.SECMSGS, '1.0.0', creds, formatFun);
+                const stream = process.env.al_application_id;
+                collector.sendCollectorStatus(stream, undefined, function (error) {
+                    assert.equal(error, null);
+                    sinon.assert.calledOnce(updateApiEndpoint);
+                    sinon.assert.notCalled(sendCollectorStatusStub);
                     done();
                 });
             });
