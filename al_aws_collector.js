@@ -203,7 +203,7 @@ class AlAwsCollector {
             inst_type: 'collector',
             stream: stream,
             status_id: this._collectorId,
-            timestamp: moment().unix(),
+            timestamp: moment().valueOf(),
             reported_by: this._collectorType,
             collection_type: this._applicationId
         }
