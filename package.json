@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "4.1.18",
+  "version": "4.1.19",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -21,23 +21,23 @@
     }
   ],
   "devDependencies": {
-    "aws-sdk": "^2.441.0",
-    "aws-sdk-mock": "^5.1.0",
+    "aws-sdk": "^2.1433.0",
+    "aws-sdk-mock": "^5.8.0",
     "clone": "^2.1.2",
-    "dotenv": "^16.0.3",
-    "jshint": "^2.9.5",
+    "dotenv": "^16.3.1",
+    "jshint": "^2.13.6",
     "mocha": "^10.2.0",
     "nyc": "^15.1.0",
     "rewire": "^6.0.0",
-    "sinon": "^15.0.1"
+    "sinon": "^15.2.0"
   },
   "dependencies": {
-    "@alertlogic/al-collector-js": "3.0.7",
+    "@alertlogic/al-collector-js": "3.0.8",
     "async": "^3.2.4",
     "cfn-response": "1.0.1",
-    "deep-equal": "^2.2.0",
+    "deep-equal": "^2.2.2",
     "moment": "^2.29.4",
-    "winston": "^3.3.3"
+    "winston": "^3.10.0"
   },
   "author": "Alert Logic Inc."
 }

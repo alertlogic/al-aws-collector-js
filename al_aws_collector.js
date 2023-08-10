@@ -54,7 +54,7 @@ function getDecryptedCredentials(callback) {
     } else {
         const kms = new AWS.KMS();
         kms.decrypt(
-            {CiphertextBlob: new Buffer(process.env.aims_secret_key, 'base64')},
+            {CiphertextBlob: Buffer.from(process.env.aims_secret_key, 'base64')},
             (err, data) => {
                 if (err) {
                     return callback(err);
@@ -612,7 +612,7 @@ class AlAwsCollector {
                             return asyncCallback(null, resp);
                         })
                         .catch(exception => {
-                            if (exception.statusCode === 304) {
+                            if (exception.response.status === 304) {
                                 return asyncCallback(null);
                             }
                             else {

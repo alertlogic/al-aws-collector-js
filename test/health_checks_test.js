@@ -6,8 +6,8 @@ const sinon = require('sinon');
 
 describe('health_check test',function(){
     describe('extractHttpErrorCode()',function(){
-        it('check function set the statusCode as httpErrorCode',function(){
-            const logmsgErr = {"errorType":"StatusCodeError","errorMessage":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","name":"StatusCodeError","statusCode":400,"message":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","error":"{\"error\":\"body encoding invalid\"}","options":{"method":"POST","url":"https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs"}};
+        it('check function set the response.status as httpErrorCode',function(){
+            const logmsgErr = {"errorType":"StatusCodeError","errorMessage":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","name":"StatusCodeError","message":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","error":"{\"error\":\"body encoding invalid\"}","response":{"status": 400 },"options":{"method":"POST","url":"https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs"}};
             const httpCode=  health_checks.extractHttpErrorCode(logmsgErr);
             assert.equal(httpCode, 400);
         });
@@ -26,8 +26,8 @@ describe('health_check test',function(){
     });
 
     describe('formatError()',function(){
-        it('check function set the statusCode as httpErrorCode',function(){
-            const error = {"errorType":"StatusCodeError","errorMessage":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","name":"StatusCodeError","statusCode":400,"message":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","error":"{\"error\":\"body encoding invalid\"}","options":{"method":"POST","url":"https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs"}};
+        it('check function set the response.status as httpErrorCode',function(){
+            const error = {"errorType":"StatusCodeError","errorMessage":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","name":"StatusCodeError","message":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","error":"{\"error\":\"body encoding invalid\"}","response":{"status": 400 },"options":{"method":"POST","url":"https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs"}};
             const formatedError =  health_checks.formatError('AWSC0018',error,'logmsgs');
             assert.equal(formatedError.httpErrorCode, 400);
             assert.equal(formatedError.errorCode, 'AWSC0018');
@@ -37,7 +37,7 @@ describe('health_check test',function(){
 
     describe('handleIngestEncodingInvalidError()', function () {
         it('If it ingest body encoding error then it upload the file', function () {
-            const error = { "errorType": "StatusCodeError", "errorMessage": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "name": "StatusCodeError", "statusCode": 400, "message": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "error": "{\"error\":\"body encoding invalid\"}", "options": { "method": "POST", "url": "https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs" } };
+            const error = { "errorType": "StatusCodeError", "errorMessage": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "name": "StatusCodeError", "message": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "error": "{\"error\":\"body encoding invalid\"}", "response":{"status": 400 },"options": { "method": "POST", "url": "https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs" } };
             const formatedError = health_checks.formatError('AWSC0018', error, 'logmsgs');
             let params = {
                 data: colMock.S3_TEST_DATA,

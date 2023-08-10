@@ -102,7 +102,7 @@ function extractHttpErrorCode(error) {
             httpErrorCode = parseInt(splitErrorMessage[1].replace(/ /, '').slice(0, 3));
         }
     } else {
-        httpErrorCode = error.statusCode;
+        httpErrorCode = error.response.status;
     }
     return httpErrorCode;
 }

@@ -803,7 +803,7 @@ describe('al_aws_collector tests', function() {
 
         it('send logmsgs got failed', function(done) {
                 ingestCLogmsgsStub.restore();
-                let logmsgErr = {"errorType":"StatusCodeError","errorMessage":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","name":"StatusCodeError","statusCode":400,"message":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","error":"{\"error\":\"body encoding invalid\"}","options":{"method":"POST","url":"https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs"}};
+                let logmsgErr = {"errorType":"StatusCodeError","errorMessage":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","name":"StatusCodeError","message":"400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"","error":"{\"error\":\"body encoding invalid\"}","response":{"status": 400 },"options":{"method":"POST","url":"https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs"}};
                 ingestCLogmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLogmsgs').callsFake(
                 function fakeFn(data, callback) {
                     return new Promise (function(resolve, reject) {
@@ -992,7 +992,7 @@ describe('al_aws_collector tests', function() {
             sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
                 function fakeFn(statusId, stream, data) {
                     return new Promise(function (resolve, reject) {
-                        reject({ message: "Not modified", statusCode: 304 });
+                        reject({ message: "Not modified", response: { status: 304 } });
                     });
                 });
 
@@ -1011,7 +1011,7 @@ describe('al_aws_collector tests', function() {
         });
 
         it('sendCollectorStatus return error if collector status service return error except 304(Not Modified)', function (done) {
-            let err = { message: "not able to connect ", statusCode: 503 };
+            let err = { message: "not able to connect ", response: { status: 503 } };
             sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
                 function fakeFn(statusId, stream, data) {
                     return new Promise(function (resolve, reject) {
