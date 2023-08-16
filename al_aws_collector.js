@@ -493,65 +493,6 @@ class AlAwsCollector {
             });
     }
 
-    //  Note : Need to remove if no collector is sending status to ingest
-    sendStatus(status, callback) {
-        let collector = this;
-
-        async.waterfall([
-            (asyncCallback) => {
-                const {
-                    azcollect_api,
-                    ingest_api
-                } = process.env;
-                if (!azcollect_api || !ingest_api || azcollect_api === "undefined" || ingest_api === "undefined") {
-                    // handling errors like this because the other unit tests seem to indicate that
-                    // the collector should send status even if there is an error in getting the endpoints.
-                    collector.updateEndpoints((err, newConfig) => {
-                        if (err) {
-                            logger.warn(`AWSC0016 Error updating endpoints ${err}`);
-                        } else {
-                            // reassign env vars because the config change occurs in the same run in sending status.
-                            const {
-                                Environment: {
-                                    Variables
-                                }
-                            } = newConfig;
-                            Object.assign(process.env, Variables);
-                            collector._azcollectc = new m_alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
-                            collector._ingestc = new m_alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
-                        }
-                        asyncCallback(null);
-                    });
-                } else {
-                    asyncCallback(null);
-                }
-            },
-            (asyncCallback) => {
-                if (!status || !collector.registered) {
-                    return asyncCallback(null);
-                } else {
-                    let collectorStatus = Array.isArray(status) ? status : [status];
-                    zlib.deflate(JSON.stringify(collectorStatus), (compressionErr, compressed) => {
-                        if (compressionErr) {
-                            return asyncCallback(compressionErr);
-                        } else {
-                            collector._ingestc.sendAgentstatus(compressed)
-                                .then(resp => {
-                                    return asyncCallback(null, resp);
-                                })
-                                .catch(exception => {
-                                    logger.warn(`AWSC0013 Collector status send failed: ${exception.message}`);
-                                    logger.debug(exception);
-                                    return asyncCallback(exception.message);
-                                });
-                        }
-                    });
-                }
-            }
-        ],
-            callback);
-    }
-
     /**
      * Function update endpoint api for different AL service if it is not available in env variable.
      * @param {*} asyncCallback 
@@ -604,7 +545,8 @@ class AlAwsCollector {
                 })
             },
             (asyncCallback) => {
-                if (!status || !collector.registered) {
+                // collector_id, stream and status object all are requied property for sending the status to collectors_status service; return null without throwing error.
+                if (!status || !collector.registered || collector._collectorId == 'NA' || !collectorStatusStream) {
                     return asyncCallback(null);
                 } else {
                     collector._collectorStatusc.sendStatus(collector.collector_id, collectorStatusStream, status)
