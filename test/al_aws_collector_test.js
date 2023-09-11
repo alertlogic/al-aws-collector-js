@@ -1430,7 +1430,7 @@ describe('al_aws_collector tests', function() {
             });
         
             collector.selfConfigUpdate((err, config) => {
-                assert.equal('AWSC0010 Unable to apply new config values TypeError: Cannot read property \'b\' of undefined', err);
+                assert.equal(`AWSC0010 Unable to apply new config values TypeError: Cannot read properties of undefined (reading 'b')`, err);
                 assert.equal(config, undefined);
             });
         });
