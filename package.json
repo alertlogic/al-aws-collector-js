@@ -21,7 +21,6 @@
     }
   ],
   "devDependencies": {
-    "aws-sdk": "^2.1454.0",
     "aws-sdk-mock": "^5.8.0",
     "clone": "^2.1.2",
     "dotenv": "^16.3.1",
@@ -33,6 +32,7 @@
   },
   "dependencies": {
     "@alertlogic/al-collector-js": "3.0.10",
+    "aws-sdk": "^2.1454.0",
     "async": "^3.2.4",
     "cfn-response": "1.0.1",
     "deep-equal": "^2.2.2",
