@@ -38,10 +38,13 @@ const NOUPDATE_CONFIG_PARAMS = [
     'LastUpdateStatusReason',
     'LastUpdateStatusReasonCode',
     'MasterArn',
+    'OptimizationStatus',
     'PackageType',
     'RevisionId',
     'Role',
+    'RuntimeVersionConfig',
     'State',
+    'SnapStart',
     'StateReason',
     'StateReasonCode',
     'Version'
