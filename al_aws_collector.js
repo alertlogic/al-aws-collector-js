@@ -11,7 +11,6 @@
 'use strict';
 
 const util = require('util');
-const AWS = require('aws-sdk');
 const moment = require('moment');
 const zlib = require('zlib');
 const async = require('async');
@@ -49,27 +48,28 @@ const NOUPDATE_CONFIG_PARAMS = [
     'StateReasonCode',
     'Version'
 ];
+const { kmsClient, DecryptCommand, cloudWatchClient } = require('./awssdkv3_utils');
 
 
-function getDecryptedCredentials(callback) {
+
+async function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
         return callback(null, AIMS_DECRYPTED_CREDS);
     } else {
-        const kms = new AWS.KMS();
-        kms.decrypt(
-            {CiphertextBlob: Buffer.from(process.env.aims_secret_key, 'base64')},
-            (err, data) => {
-                if (err) {
-                    return callback(err);
-                } else {
-                    AIMS_DECRYPTED_CREDS = {
-                        access_key_id: process.env.aims_access_key_id,
-                        secret_key: data.Plaintext.toString('ascii')
-                    };
-                    
-                    return callback(null, AIMS_DECRYPTED_CREDS);
-                }
-            });
+        const ciphertextBlob = Buffer.from(process.env.aims_secret_key, 'base64');
+        const decryptCommand = new DecryptCommand({
+            CiphertextBlob: Uint8Array.from(ciphertextBlob),
+        });
+        try {
+            const data = await kmsClient.send(decryptCommand);
+            AIMS_DECRYPTED_CREDS = {
+                access_key_id: process.env.aims_access_key_id,
+                secret_key: data.Plaintext.toString('ascii'),
+            };
+            return callback(null, AIMS_DECRYPTED_CREDS);
+        } catch (err) {
+            return callback(err);
+        }
     }
 }
 /**
@@ -138,7 +138,7 @@ class AlAwsCollector {
         this._stackName = process.env.stack_name;
         this._applicationId = process.env.al_application_id;
         this._streams = streams;
-        this._cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
+        this._cloudwatch = cloudWatchClient;
         this._controlSnsArn = process.env.al_control_sns_arn;
     }
     

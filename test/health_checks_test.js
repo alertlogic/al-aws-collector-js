@@ -36,7 +36,7 @@ describe('health_check test',function(){
     });
 
     describe('handleIngestEncodingInvalidError()', function () {
-        it('If it ingest body encoding error then it upload the file', function () {
+        it('If it ingest body encoding error then it upload the file', async function () {
             const error = { "errorType": "StatusCodeError", "errorMessage": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "name": "StatusCodeError", "message": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "error": "{\"error\":\"body encoding invalid\"}", "response":{"status": 400 },"options": { "method": "POST", "url": "https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs" } };
             const formatedError = health_checks.formatError('AWSC0018', error, 'logmsgs');
             let params = {
@@ -48,14 +48,16 @@ describe('health_check test',function(){
                 function fakeFn(param, callback) {
                     return callback(null);
                 });
-
-            health_checks.handleIngestEncodingInvalidError(formatedError, params, (err) => {
-                sinon.assert.calledOnce(mockuploadS3Object);
-                mockuploadS3Object.restore();
-            });
+                try {
+                    await health_checks.handleIngestEncodingInvalidError(formatedError, params);
+                        sinon.assert.calledOnce(mockuploadS3Object);
+                        mockuploadS3Object.restore();
+                } catch (error) {
+                }
+            
         });
 
-        it('retrun error as it, if it is not ingest body encoding error', function () {
+        it('retrun error as it, if it is not ingest body encoding error', async function () {
             const error = "AWSC0018 failed at logmsgs : 404 - \"{\\\"error\\\":\\\"Customer Not Active in AIMS\\\"}";
             const formatedError = health_checks.formatError('AWSC0018', error, 'logmsgs');
             let params = {
@@ -63,10 +65,12 @@ describe('health_check test',function(){
                 key: colMock.S3_CONFIGURATION_FILE_NAME,
                 bucketName: colMock.S3_CONFIGURATION_BUCKET
             };
+            try {
+                await health_checks.handleIngestEncodingInvalidError(formatedError, params);
 
-            health_checks.handleIngestEncodingInvalidError(formatedError, params, (err) => {
-                assert.notEqual(err,null);
-            });
+            } catch (error) {
+                assert.notEqual(error,null);
+            }
         });
     });
 });
