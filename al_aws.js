@@ -10,7 +10,15 @@
  */
 'use strict';
 
-const AWS = require('aws-sdk');
+const {
+          CloudWatch
+      } = require("@aws-sdk/client-cloudwatch"),
+      {
+          Lambda
+      } = require("@aws-sdk/client-lambda"),
+      {
+          S3
+      } = require("@aws-sdk/client-s3");
 const moment = require('moment');
 const async = require('async');
 const logger = require('./logger');
@@ -36,7 +44,7 @@ var selfUpdate = function (callback) {
       S3Bucket: process.env.aws_lambda_s3_bucket,
       S3Key: process.env.aws_lambda_zipfile_name
     };
-    var lambda = new AWS.Lambda(LAMBDA_CONFIG);
+    var lambda = new Lambda(LAMBDA_CONFIG);
     logger.info(`AWSC0100 Performing lambda self-update with params: ${JSON.stringify(params)}`);
     lambda.updateFunctionCode(params, function(err, data) {
         if (err) {
@@ -49,7 +57,7 @@ var selfUpdate = function (callback) {
 };
 
 var getS3ConfigChanges = function(callback) {
-    var s3 = new AWS.S3();
+    var s3 = new S3();
 
     var params = {
         Bucket: process.env.aws_lambda_s3_bucket,
@@ -59,9 +67,11 @@ var getS3ConfigChanges = function(callback) {
         if (err) {
             return callback(err);
         } else {
-            try  {
-                let config = JSON.parse(object.Body.toString());
-                return callback(null, config);
+            try {
+                object.Body.transformToString().then(res => {
+                    let config = JSON.parse(res);
+                    return callback(null, config);
+                });
             } catch(ex) {
                 return callback('AWSC0103 Unable to parse config changes.')
             }
@@ -70,7 +80,7 @@ var getS3ConfigChanges = function(callback) {
 };
 
 var getLambdaConfig = function(callback) {
-    var lambda = new AWS.Lambda(LAMBDA_CONFIG);
+    var lambda = new Lambda(LAMBDA_CONFIG);
     var params = {
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
     };
@@ -84,7 +94,7 @@ var updateLambdaConfig = function(config, callback) {
             logger.error('AWSC0107 Error getting function config, lambda config was not updated', err);
             return callback(err);
         }
-        var lambda = new AWS.Lambda(LAMBDA_CONFIG);
+        var lambda = new Lambda(LAMBDA_CONFIG);
         return lambda.updateFunctionConfiguration(config, callback);
     });
 };
@@ -92,7 +102,7 @@ var updateLambdaConfig = function(config, callback) {
 //DEPRECATED FUNCTION
 //please use statistics_templates.js instead
 var getMetricStatistics = function (params, statistics, callback) {
-    var cloudwatch = new AWS.CloudWatch({apiVersion: '2010-08-01'});
+    var cloudwatch = new CloudWatch({apiVersion: '2010-08-01'});
     cloudwatch.getMetricStatistics(params, function(err, data) {
         if (err) {
             statistics.push({
@@ -169,7 +179,7 @@ var arnToAccId = function (arn) {
 };
 
 var waitForFunctionUpdate = function (callback) {
-    let lambda = new AWS.Lambda(LAMBDA_CONFIG);
+    let lambda = new Lambda(LAMBDA_CONFIG);
     const getConfigParams = {
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
     };
@@ -199,7 +209,7 @@ var setEnv = function(vars, callback) {
             logger.error('AWSC0104 Error getting function config, environment variables were not updated', err);
             return callback(err);
         }
-        const lambda = new AWS.Lambda(LAMBDA_CONFIG);
+        const lambda = new Lambda(LAMBDA_CONFIG);
         const getConfigParams = {
             FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
         };
@@ -217,7 +227,7 @@ var setEnv = function(vars, callback) {
 };
 
 var uploadS3Object = function ({ data, key, bucket }, callback) {
-    var s3 = new AWS.S3();
+    var s3 = new S3();
     // Setting up S3 putObject parameters
     const parseData = typeof data !== 'string' ? JSON.stringify(data) : data;
     if (bucket) {

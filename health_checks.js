@@ -8,7 +8,7 @@
  * -----------------------------------------------------------------------------
  */
 
-const AWS = require('aws-sdk');
+const { CloudFormation } = require("@aws-sdk/client-cloudformation");
 
 const m_alAws = require('./al_aws');
 const logger = require('./logger');
@@ -32,7 +32,7 @@ const INGEST_INVALID_ENCODING = {
  */
 
 function checkCloudFormationStatus(stackName, callback) {
-    var cloudformation = new AWS.CloudFormation({
+    var cloudformation = new CloudFormation({
         maxRetries:7,
         retryDelayOptions: {
             customBackoff: m_alAws.customBackoff

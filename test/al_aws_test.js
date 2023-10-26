@@ -1,8 +1,10 @@
 const assert = require('assert');
 const m_alAws = require('../al_aws');
 const colMock = require('./collector_mock');
-var AWS = require('aws-sdk-mock');
+var alStub = require('./al_stub');
 
+const { Lambda } = require("@aws-sdk/client-lambda"),
+    { S3 } = require("@aws-sdk/client-s3");
 
 describe('al_aws Tests', function() {
     describe('arnToName() tests', function() {
@@ -40,30 +42,40 @@ describe('al_aws Tests', function() {
     });
     
     describe('getS3ConfigChanges() function', () => {
-        var jsonCfg = "{\"key\":\"value\"}";
-        var s3Object = {Body: new Buffer(jsonCfg)};
+        var jsonCfg = JSON.stringify({"key":"value"});
     
         beforeEach(() => {
             colMock.initProcessEnv();
         });
         afterEach(() => {
-            AWS.restore('S3', 'getObject');
+            alStub.restore(S3, 'getObject');
         });
     
         it('sunny case with predefined name', () => {
-            AWS.mock('S3', 'getObject', function(params, callback) {
+            alStub.mock(S3, 'getObject', function(params, callback) {
                 assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
                 assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
+            let s3Object = {  Body: {
+                transformToString: () => {
+                  return new Promise((resolve, reject) => {
+                    try {
+                      resolve(jsonCfg);
+                    } catch (error) {
+                      reject(error);
+                    }
+                  });
+                }
+              }};
                 return callback(null, s3Object);
             });
     
             m_alAws.getS3ConfigChanges((err, config) => {
-                assert.equal(jsonCfg, JSON.stringify(config));
+                assert.equal(JSON.parse(jsonCfg), config);
             });
         });
     
         it('error', () => {
-            AWS.mock('S3', 'getObject', function (params, callback) {
+            alStub.mock(S3, 'getObject', function (params, callback) {
                 assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
                 assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
                 return callback("key not found error");
@@ -82,11 +94,11 @@ describe('al_aws Tests', function() {
         });
         
         afterEach(() => {
-            AWS.restore('Lambda', 'getFunctionConfiguration');
+            alStub.restore(Lambda, 'getFunctionConfiguration');
         });
         
         it('check function name', () => {
-            AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
+            alStub.mock(Lambda, 'getFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 return callback(null, "ok");
             });
@@ -104,12 +116,12 @@ describe('al_aws Tests', function() {
         });
         
         afterEach(() => {
-            AWS.restore('Lambda', 'getFunctionConfiguration');
-            AWS.restore('Lambda', 'updateFunctionConfiguration');
+            alStub.restore(Lambda, 'getFunctionConfiguration');
+            alStub.restore(Lambda, 'updateFunctionConfiguration');
         });
         
         it('check env update', (done) => {
-            AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
+            alStub.mock(Lambda, 'getFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 const config = {
                     LastUpdateStatus: 'Success',
@@ -121,7 +133,7 @@ describe('al_aws Tests', function() {
                 };
                 return callback(null, config);
             });
-            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+            alStub.mock(Lambda, 'updateFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 return callback(null, params);
             });
@@ -157,7 +169,7 @@ describe('al_aws Tests', function() {
                 }
             };
             let callCount = 0;
-            AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
+            alStub.mock(Lambda, 'getFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 if (callCount === 0) {
                     callCount++;
@@ -167,7 +179,7 @@ describe('al_aws Tests', function() {
                 }
             });
             
-            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+            alStub.mock(Lambda, 'updateFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 return callback(null, params);
             });
@@ -194,12 +206,12 @@ describe('al_aws Tests', function() {
                     }
                 }
             };
-            AWS.mock('Lambda', 'getFunctionConfiguration', (params, callback) => {
+            alStub.mock(Lambda, 'getFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 return callback(null, configInProgress);
             });
             
-            AWS.mock('Lambda', 'updateFunctionConfiguration', (params, callback) => {
+            alStub.mock(Lambda, 'updateFunctionConfiguration', (params, callback) => {
                 assert.equal(colMock.FUNCTION_NAME, params.FunctionName);
                 return callback(null, params);
             });
@@ -232,7 +244,7 @@ describe('al_aws Tests', function() {
             colMock.initProcessEnv();
         });
         afterEach(() => {
-            AWS.restore('S3', 'putObject');
+           
         });
 
         it('if bucket name is undefined/null return error', () => {
@@ -244,7 +256,7 @@ describe('al_aws Tests', function() {
         });
 
         it('uploaded file successfully ', () => {
-            AWS.mock('S3', 'putObject', function (params, callback) {
+            alStub.mock(S3, 'putObject', function (params, callback) {
                 assert.equal(params.Bucket, colMock.S3_CONFIGURATION_BUCKET);
                 assert.equal(params.Key, colMock.S3_CONFIGURATION_FILE_NAME);
                 return callback(null, s3PutObjectResponse);
@@ -253,6 +265,7 @@ describe('al_aws Tests', function() {
             bucketParameters.bucket = colMock.S3_CONFIGURATION_BUCKET;
             m_alAws.uploadS3Object(bucketParameters, (err, response) => {
                 assert.equal(s3PutObjectResponse, response);
+                alStub.restore(S3, 'putObject');
             });
         });
     });
