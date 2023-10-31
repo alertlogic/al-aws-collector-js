@@ -9,11 +9,8 @@
  * -----------------------------------------------------------------------------
  */
 
-const AWS = require('aws-sdk');
-const async = require('async');
+const { CloudWatch } = require("@aws-sdk/client-cloudwatch");
 const moment = require('moment');
-
-const m_alAws = require('./al_aws');
 
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
@@ -57,7 +54,7 @@ const MAX_ERROR_MSG_LEN = 1024;
 // }
 
 var getMetricStatistics = function (params, callback) {
-    var cloudwatch = new AWS.CloudWatch({apiVersion: '2010-08-01'});
+    var cloudwatch = new CloudWatch({apiVersion: '2010-08-01'});
     cloudwatch.getMetricStatistics(params, function(err, data) {
         if (err) {
             return callback(null, {

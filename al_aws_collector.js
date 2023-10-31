@@ -11,7 +11,12 @@
 'use strict';
 
 const util = require('util');
-const AWS = require('aws-sdk');
+const {
+          CloudWatch
+      } = require("@aws-sdk/client-cloudwatch"),
+      {
+          KMS
+      } = require("@aws-sdk/client-kms");
 const moment = require('moment');
 const zlib = require('zlib');
 const async = require('async');
@@ -55,7 +60,7 @@ function getDecryptedCredentials(callback) {
     if (AIMS_DECRYPTED_CREDS) {
         return callback(null, AIMS_DECRYPTED_CREDS);
     } else {
-        const kms = new AWS.KMS();
+        const kms = new KMS();
         kms.decrypt(
             {CiphertextBlob: Buffer.from(process.env.aims_secret_key, 'base64')},
             (err, data) => {
@@ -64,7 +69,7 @@ function getDecryptedCredentials(callback) {
                 } else {
                     AIMS_DECRYPTED_CREDS = {
                         access_key_id: process.env.aims_access_key_id,
-                        secret_key: data.Plaintext.toString('ascii')
+                        secret_key: new TextDecoder("utf-8").decode(data.Plaintext)
                     };
                     
                     return callback(null, AIMS_DECRYPTED_CREDS);
@@ -138,7 +143,7 @@ class AlAwsCollector {
         this._stackName = process.env.stack_name;
         this._applicationId = process.env.al_application_id;
         this._streams = streams;
-        this._cloudwatch = new AWS.CloudWatch({ apiVersion: '2010-08-01' });
+        this._cloudwatch = new CloudWatch({ apiVersion: '2010-08-01' });
         this._controlSnsArn = process.env.al_control_sns_arn;
     }
     
