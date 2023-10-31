@@ -49,7 +49,7 @@ function setAlServiceStub() {
                         };
                         break;
                     default:
-                         break;
+                        break;
                 }
                 return resolve(ret);
             });
@@ -1405,16 +1405,13 @@ describe('al_aws_collector tests', function () {
             mockLambdaGetFunctionConfiguration(colMock.LAMBDA_FUNCTION_CONFIGURATION);
     
             alStub.mock(Lambda, 'updateFunctionConfiguration', (params, callback) => {
-                console.log('updateConfig', JSON.stringify(updateConfig));
                 assert(deepEqual(updateConfig, params));
                 callback(null, colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE);
             });
 
             collector.selfConfigUpdate((err, config) => {
-                 console.log('err',err );
                 assert.equal(null, err);
-                
-                // assert(deepEqual(colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE, config));
+                assert(deepEqual(colMock.LAMBDA_FUNCTION_CONFIGURATION_WITH_STATE, config));
             });
         });
 
