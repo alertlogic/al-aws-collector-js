@@ -132,7 +132,7 @@ var getLambdaMetrics = function (functionName, metricName, statistics, callback)
         MetricName: metricName,
         Namespace: 'AWS/Lambda',
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toISOString(),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
         EndTime: new Date(),
         Period: 60*AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
@@ -152,7 +152,7 @@ var getKinesisMetrics = function (streamName, metricName, statistics, callback) 
         MetricName: metricName,
         Namespace: 'AWS/Kinesis',
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toISOString(),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
         EndTime: new Date(),
         Period: 60*AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
