@@ -33,7 +33,7 @@ const INGEST_INVALID_ENCODING = {
 
 function checkCloudFormationStatus(stackName, callback) {
     var cloudformation = new CloudFormation({
-        maxRetries:7,
+        maxAttempts:7,
         retryDelayOptions: {
             customBackoff: m_alAws.customBackoff
         }
