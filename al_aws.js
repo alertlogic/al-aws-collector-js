@@ -28,7 +28,7 @@ const MAX_RANDOM_VALUE = 3000;
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
 const LAMBDA_CONFIG = {
-        maxRetries: 10
+        maxAttempts: 10
 };
 const LAMBDA_UPDATE_RETRY = {
         times: 20,
