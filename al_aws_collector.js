@@ -184,7 +184,7 @@ class AlAwsCollector {
     }
 
 
-    done(error, streamType, sendStatus = true) {
+    done(error, streamType, sendStatus = true, callback) {
         let context = this._invokeContext;
         if (error) {
             const errorString = this.stringifyError(error);
@@ -193,13 +193,13 @@ class AlAwsCollector {
             const status = this.setCollectorStatus(stream, errorString);
             if (sendStatus) {
                 this.sendCollectorStatus(stream, status, () => {
-                    context.fail(errorString);
+                    callback(new Error(errorString));
                 });
             } else {
-                context.fail(errorString);
+                callback(new Error(errorString));
             }
         } else {
-            return context.succeed();
+            return callback(null);
         }
     }
 
@@ -328,7 +328,7 @@ class AlAwsCollector {
         callback);
     }
 
-    handleCheckin() {
+    handleCheckin(callback) {
         var collector = this;
         async.waterfall([
             function (asyncCallback) {
@@ -349,7 +349,7 @@ class AlAwsCollector {
                 return collector.checkin(asyncCallback);
             }
         ], function (err) {
-            return collector.done(err);
+            return collector.done(err, null, false, callback);
         });
     }
     
@@ -728,10 +728,10 @@ class AlAwsCollector {
         
     }
     
-    handleUpdate() {
+    handleUpdate(callback) {
         var collector = this;
         collector.update(function(err) {
-            return collector.done(err);
+            return collector.done(err, null, false, callback);
         });
     }
     
@@ -797,29 +797,28 @@ class AlAwsCollector {
         });
     }
     
-    handleEvent(event) {
+    handleEvent(event, callback) {
         let collector = this;
-        let context = this._invokeContext;
         let parsedEvent = collector._parseEvent(event);
 
         switch (parsedEvent.RequestType) {
         case 'ScheduledEvent':
             switch (parsedEvent.Type) {
                 case 'SelfUpdate':
-                    return collector.handleUpdate();
+                    return collector.handleUpdate(callback);
                     break;
                 case 'Checkin':
-                    return collector.handleCheckin();
+                    return collector.handleCheckin(callback);
                     break;
                 default:
-                    return context.fail('AWSC0009 Unknown scheduled event detail type: ' + parsedEvent.Type);
+                    return callback(`AWSC0009 Unknown scheduled event detail type: ${parsedEvent.Type}`);
             }
         case 'Create':
             return collector.registerSync(event, {});
         case 'Delete':
             return collector.deregisterSync(event, {});
         default:
-            return context.fail('AWSC0012 Unknown event:' + JSON.stringify(event));
+            callback(`AWSC0012 Unknown event:  ${JSON.stringify(event)}`);
         }
     }
 
