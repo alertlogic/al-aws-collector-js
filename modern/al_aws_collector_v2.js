@@ -160,12 +160,17 @@ class AlAwsCollectorV2 {
         return this._streams;
     }
 
-
+    /**
+     * It finalizes the lambda execution by calling context.succeed or context.fail
+     * @param {*} error 
+     * @param {*} streamType 
+     * @param {*} sendStatus 
+     * @returns 
+     */
     async done(error, streamType, sendStatus = true) {
         let context = this._invokeContext;
         if (error) {
             const errorString = this.stringifyError(error);
-            // TODO: fix stream name reporting
             const stream = streamType ? streamType : this._applicationId ? this._applicationId : this._ingestType;
             const status = this.setCollectorStatus(stream, errorString);
             if (sendStatus) {
@@ -178,7 +183,13 @@ class AlAwsCollectorV2 {
             return context.succeed();
         }
     }
-
+    /**
+     * Set the collector status object to be sent to collector_status service
+     * @param {*} collectorStream 
+     * @param {*} errorString 
+     * @param {*} errorCode 
+     * @returns 
+     */
     setCollectorStatus(collectorStream, errorString, errorCode) {
         const stream = collectorStream ? collectorStream : this._applicationId;
         const status = errorString ? 'error' : 'ok';
@@ -252,7 +263,12 @@ class AlAwsCollectorV2 {
             throw new Error(`AWSC0001 Endpoint update failure ${error}`);
         }
     }
-
+    /**
+     * Register the collector in azcollect and assets service and return cfn response
+     * @param {*} event 
+     * @param {*} custom 
+     * @returns 
+     */
     async registerSync(event, custom) {
 
         try {
@@ -293,7 +309,9 @@ class AlAwsCollectorV2 {
         }
 
     }
-
+    /**
+     * Checkin the collector status and statistics and send it to azcollect service in every checkin interval
+     */
     async checkin() {
         var collector = this;
         const context = this._invokeContext;
@@ -339,7 +357,12 @@ class AlAwsCollectorV2 {
         }
     }
 
-
+    /**
+     * Return health status by executing custom health check functions and cloudformation stack status check
+     * @param {*} context 
+     * @param {*} customChecks 
+     * @returns 
+     */
     async getHealthStatus(context, customChecks) {
 
         const appliedHealthChecks = customChecks.map(check => check.bind(this));
@@ -358,7 +381,12 @@ class AlAwsCollectorV2 {
             };
         }
     }
-
+    /**
+     * Get statistics data from AWS Cloudwatch Invocations and Errors and custom stats functions
+     * @param {*} context 
+     * @param {*} statsFuns 
+     * @returns 
+     */
     async getStatistics(context, statsFuns) {
 
         const appliedStatsFuns = statsFuns.map(fun => fun.bind(this));
@@ -374,12 +402,15 @@ class AlAwsCollectorV2 {
             return { statistics: [] };
         }
     }
-
+    /**
+     * update the lambda function code and configuration if there is any change
+     * @returns lambda update response or error
+     */
     async update() {
         let collector = this;
         await collector.selfUpdate();
         if (process.env.aws_lambda_update_config_name) {
-            await collector.selfConfigUpdate();
+            return await collector.selfConfigUpdate();
         }
     }
 
@@ -387,7 +418,10 @@ class AlAwsCollectorV2 {
         return await alAwsCommon.selfUpdateAsync();
     }
 
-
+    /**
+     * Check for config changes in s3 bucket and update the lambda configuration
+     * @returns updated lambda response or error
+     */
     async selfConfigUpdate() {
         let collector = this;
         try {
@@ -485,42 +519,56 @@ class AlAwsCollectorV2 {
             case 'ScheduledEvent':
                 switch (parsedEvent.Type) {
                     case 'SelfUpdate':
-                        await collector.handleUpdate();
-                        break;
+                        return await collector.handleUpdate();
                     case 'Checkin':
-                        await collector.handleCheckin();
-                        break;
+                        return await collector.handleCheckin();
                     default:
                         return context.fail('AWSC0009 Unknown scheduled event detail type: ' + parsedEvent.Type);
                 }
                 break;
             case 'Create':
-                await collector.registerSync(event, {});
-                break;
+                return await collector.registerSync(event, {});
             case 'Delete':
-                await collector.deregisterSync(event, {});
-                break;
+                return await collector.deregisterSync(event, {});
             default:
                 return context.fail('AWSC0012 Unknown event:' + JSON.stringify(event));
         }
     }
 
+    /**
+     * Update the lambda function code and configuration if there is any change
+     * @returns the Lambda context succeed or fail base 
+     */
     async handleUpdate() {
         var collector = this;
         try {
             await collector.update();
-            collector.done();
+            return collector.done();
         } catch (error) {
-            collector.done(error);
+            return collector.done(error);
         }
     }
 
-
+    /**
+     * Deregister the collector from azcollect sand asset service and return cfn response
+     * @param {*} event 
+     * @param {*} custom 
+     * @returns 
+     */
     async deregisterSync(event, custom) {
-        await this.deregister(event, custom);
-        return response.send(event, this.context, response.SUCCESS);
+        try {
+            await this.deregister(event, custom);
+            return response.send(event, this.context, response.SUCCESS);
+        } catch (error) {
+            return response.send(event, this.context, response.FAILED, { Error: error });
+        }
     }
-
+    /**
+     * Deregister the collector from Azcollect service
+     * @param {*} event 
+     * @param {*} custom 
+     * @returns 
+     */
 
     async deregister(event, custom) {
         let regValues = { ...this.getProperties(), ...custom };
@@ -534,7 +582,11 @@ class AlAwsCollectorV2 {
             throw error;
         }
     }
-
+    /**
+     * process the event by formatting and sending to alertlogic ingest service
+     * @param {*} event 
+     * @returns 
+     */
     async process(event) {
         const context = this._invokeContext;
         var collector = this;
@@ -551,13 +603,11 @@ class AlAwsCollectorV2 {
         });
 
         // Step 2: Send the formatted data
-        return collector.send(data, compress, collector._ingestType);
+        return await collector.send(data, compress, collector._ingestType);
     }
 
     async processLog(messages, formatFun, hostmetaElems) {
         if (arguments.length === 3 && typeof hostmetaElems === 'function') {
-            // callback = hostmetaElems;
-            // hostmetaElems = this._defaultHostmetaElems();
             throw new Error('Callback style not supported in async version');
         }
         var collector = this;
@@ -587,8 +637,13 @@ class AlAwsCollectorV2 {
         }
     }
 
-
-
+    /**
+     * Send data to Alertlogic ingest
+     * @param {*} data 
+     * @param {*} compress 
+     * @param {*} ingestType 
+     * @returns 
+     */
     async send(data, compress = true, ingestType = this._ingestType) {
         var collector = this;
 
@@ -617,7 +672,11 @@ class AlAwsCollectorV2 {
         }
 
     }
-
+    /**
+     * Send the different type of data to respective ingest api
+     * @param {*} data 
+     * @param {*} ingestType 
+     */
     async _send(data, ingestType = this._ingestType) {
         var collector = this;
         switch (ingestType) {
@@ -667,7 +726,7 @@ class AlAwsCollectorV2 {
         };
     }
 
-     /**
+    /**
      * Send the status to collector_status service
      * @param {*} collectorStatusStream - Collector those having streams use that else stream will be application_id
      * @param {*} status -It's a json object form using setCollectorStatus function
@@ -679,7 +738,7 @@ class AlAwsCollectorV2 {
             return null;
         } else {
             try {
-                await collector._collectorStatusc.sendStatus(collector.collector_id, collectorStatusStream, status);
+                return await collector._collectorStatusc.sendStatus(collector._collectorId, collectorStatusStream, status);
             } catch (exception) {
                 if (exception.response.status === 304) {
                     return null;
@@ -695,7 +754,7 @@ class AlAwsCollectorV2 {
     }
 
     /**
-     * @param {Object} param - Its JSON object with  metricName, namespace, standardUnit and unitValue
+    * @param {Object} param - Its JSON object with  metricName, namespace, standardUnit and unitValue
     * param = {
     * metricName :'custom metrics'
     * nameSpace : 'PAWSCollector',
