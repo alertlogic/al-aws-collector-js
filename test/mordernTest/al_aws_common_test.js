@@ -227,7 +227,6 @@ describe('al_aws_common tests', function () {
             al_stub.restore(Lambda, 'updateFunctionCode');
         });
         it('should update the function code', async function () {
-            al_stub.restore(Lambda, 'updateFunctionCode');
             al_stub.mock(Lambda, 'updateFunctionCode', (param) => {
                 return Promise.resolve({
                     FunctionName: param.FunctionName,
