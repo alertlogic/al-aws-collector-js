@@ -12,7 +12,11 @@ describe('al_aws_common tests', function () {
             const retryCount = 1;
             const err = { code: 'ThrottlingException' };
             const backoffTime = alAwsCommon.customBackoff(retryCount, err);
-            assert(backoffTime >= 100 && backoffTime <= 3000);
+            // With retryCount=1: random(100-3000) + (2^1 * 100) = random(100-3000) + 200 = 300-3200
+            const expectedMin = 100 + (Math.pow(2, retryCount) * 100);
+            const expectedMax = 3000 + (Math.pow(2, retryCount) * 100);
+            assert(backoffTime >= expectedMin && backoffTime <= expectedMax,
+                `Expected backoff time to be between ${expectedMin} and ${expectedMax}, but got ${backoffTime}`);
         });
 
         it('should return 0 for non-throttling errors', function () {
