@@ -81,7 +81,7 @@ var getLambdaMetrics = function (functionName, metricName, callback) {
         MetricName: metricName,
         Namespace: 'AWS/Lambda',
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toDate(),
         EndTime: new Date(),
         Period: 60*AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
@@ -112,7 +112,7 @@ var getCustomMetrics = function (functionName, metricName, namespace, customDime
         MetricName: metricName,
         Namespace: namespace,
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toDate(),
         EndTime: new Date(),
         Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
@@ -130,7 +130,7 @@ var getKinesisMetrics = function (streamName, metricName, callback) {
         MetricName: metricName,
         Namespace: 'AWS/Kinesis',
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toDate(),
         EndTime: new Date(),
         Period: 60*AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
