@@ -82,15 +82,8 @@ class AlAwsCollectorV2 {
         };
     }
 
-    static load() {
-        return new Promise(function (resolve, reject) {
-            try {
-                const creds = getDecryptedCredentialsAsync();
-                resolve(creds);
-            } catch (error) {
-                reject(error);
-            }
-        });
+    static async load() {
+        return await getDecryptedCredentialsAsync();
     }
 
     constructor(context, collectorType, ingestType, version, aimsCreds,

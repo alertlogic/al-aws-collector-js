@@ -44,7 +44,7 @@ var getLambdaMetrics = async function (functionName, metricName) {
         MetricName: metricName,
         Namespace: 'AWS/Lambda',
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toDate(),
         EndTime: new Date(),
         Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
@@ -74,7 +74,7 @@ var getCustomMetrics = async function (functionName, metricName, namespace, cust
         MetricName: metricName,
         Namespace: namespace,
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toDate(),
         EndTime: new Date(),
         Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
@@ -92,7 +92,7 @@ var getKinesisMetrics = async function (streamName, metricName) {
         MetricName: metricName,
         Namespace: 'AWS/Kinesis',
         Statistics: ['Sum'],
-        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes'),
+        StartTime: moment().subtract(AWS_STATISTICS_PERIOD_MINUTES, 'minutes').toDate(),
         EndTime: new Date(),
         Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
