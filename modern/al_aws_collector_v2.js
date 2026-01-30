@@ -1,5 +1,3 @@
-
-
 const { TextDecoder, inspect } = require('util');
 const alUttil = require('./util');
 const {
@@ -18,7 +16,6 @@ const alAwsCommon = require('./al_aws_common');
 const alAwsStatsTmpls = require('./al_aws_stats_templates');
 const logger = require('../logger');
 
-// declare const here
 var AIMS_DECRYPTED_CREDS = null;
 
 const AL_SERVICES = ['ingest', 'azcollect', 'collector_status'];
@@ -228,7 +225,6 @@ class AlAwsCollectorV2 {
         }
     }
 
-
     getProperties() {
         return {
             awsAccountId: this._awsAccountId,
@@ -242,7 +238,36 @@ class AlAwsCollectorV2 {
         };
     }
 
+    /**
+    * Function update endpoint api for different AL service if it is not available in env variable.
+    */
     async updateApiEndpoints() {
+        const collector = this;
+        const {
+            azcollect_api,
+            ingest_api,
+            collector_status_api
+        } = process.env;
+        if (!azcollect_api || !ingest_api || !collector_status_api || azcollect_api === "undefined" || ingest_api === "undefined" || collector_status_api === "undefined") {
+            try {
+                const newConfig = await collector.updateEndpoints();
+                const {
+                    Environment: {
+                        Variables
+                    }
+                } = newConfig;
+
+                Object.assign(process.env, Variables);
+                collector._azcollectc = new alCollector.AzcollectC(process.env.azcollect_api, collector._aimsc, 'aws', collector._collectorType);
+                collector._ingestc = new alCollector.IngestC(process.env.ingest_api, collector._aimsc, 'lambda_function');
+                collector._collectorStatusc = new alCollector.CollectorStatusC(process.env.collector_status_api, collector._aimsc);
+            } catch (error) {
+                logger.warn(`AWSC0014 Error updating endpoints ${error}`);
+            }
+        }
+    }
+
+    async updateEndpoints() {
         var collector = this;
         try {
             const mapResult = await Promise.all(AL_SERVICES.map(service => collector._endpointsc.getEndpoint(service, collector._alDataResidency)));
@@ -253,7 +278,7 @@ class AlAwsCollectorV2 {
             };
             return await alAwsCommon.setEnvAsync(endpoints);
         } catch (error) {
-            throw new Error(`AWSC0001 Endpoint update failure ${error}`);
+            throw new Error(`AWSC0001 Endpoint update failure ${JSON.stringify(error)}`);
         }
     }
     /**
@@ -263,7 +288,6 @@ class AlAwsCollectorV2 {
      * @returns 
      */
     async registerSync(event, custom) {
-
         try {
             await this.register(event, custom);
             return response.send(event, this.context, response.SUCCESS);
@@ -275,8 +299,7 @@ class AlAwsCollectorV2 {
 
     async register(event, custom) {
         let regValues = { ...this.getProperties(), ...custom };
-        regValues.stackName = event && event.ResourceProperties ?
-            event.ResourceProperties.StackName : regValues.stackName;
+        regValues.stackName = this._resolveStackName(event, regValues);
 
         try {
             await this.updateApiEndpoints();
@@ -320,10 +343,7 @@ class AlAwsCollectorV2 {
             const [healthStatus, statisticsObj] = await Promise.all(allFunctions);
             const statistics = statisticsObj.statistics;
 
-            // Extract datapoints
-            const invocationStatsDatapoints = statistics[0]?.Datapoints || statistics;
-            const errorStatsDatapoints = statistics[1]?.Datapoints || statistics;
-            if (healthStatus.status === 'ok' && invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0 && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
+            if (healthStatus.status === 'ok' && this.isStatsNonZero(statistics)) {
                 if (Array.isArray(collectorStreams) && collectorStreams.length > 0) {
                     await Promise.all(collectorStreams.map(async (streamType) => {
                         let okStatus = collector.setCollectorStatus(streamType);
@@ -332,7 +352,6 @@ class AlAwsCollectorV2 {
                 } else {
                     const stream = collector._applicationId ? collector._applicationId : collector._ingestType;
                     let okStatus = collector.setCollectorStatus(stream);
-                    // make api call to send status ok
                     await collector.sendCollectorStatus(stream, okStatus);
                 }
             }
@@ -350,6 +369,15 @@ class AlAwsCollectorV2 {
         }
     }
 
+    isStatsNonZero(statistics) {
+        const invocationStatsDatapoints = statistics[0]?.Datapoints || statistics;
+        const errorStatsDatapoints = statistics[1]?.Datapoints || statistics;
+        if (invocationStatsDatapoints.length > 0 && invocationStatsDatapoints[0].Sum > 0 && errorStatsDatapoints.length > 0 && errorStatsDatapoints[0].Sum === 0) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Return health status by executing custom health check functions and cloudformation stack status check
      * @param {*} context 
@@ -357,7 +385,6 @@ class AlAwsCollectorV2 {
      * @returns 
      */
     async getHealthStatus(context, customChecks) {
-
         const appliedHealthChecks = customChecks.map(check => check.bind(this));
         try {
             await Promise.all(appliedHealthChecks.map(fn => fn()));
@@ -374,6 +401,7 @@ class AlAwsCollectorV2 {
             };
         }
     }
+
     /**
      * Get statistics data from AWS Cloudwatch Invocations and Errors and custom stats functions
      * @param {*} context 
@@ -381,7 +409,6 @@ class AlAwsCollectorV2 {
      * @returns 
      */
     async getStatistics(context, statsFuns) {
-
         const appliedStatsFuns = statsFuns.map(fun => fun.bind(this));
         const allFuns = [
             async () => alAwsStatsTmpls.getLambdaMetrics(context.functionName, 'Invocations'),
@@ -395,6 +422,7 @@ class AlAwsCollectorV2 {
             return { statistics: [] };
         }
     }
+
     /**
      * update the lambda function code and configuration if there is any change
      * @returns lambda update response or error
@@ -433,6 +461,7 @@ class AlAwsCollectorV2 {
             }
         } catch (error) {
             logger.error('AWSC0006 Lambda self-update config error:', error);
+            throw error;
         }
     }
 
@@ -500,7 +529,6 @@ class AlAwsCollectorV2 {
                 return event;
             }
         }
-
     }
 
     async handleEvent(event) {
@@ -565,8 +593,7 @@ class AlAwsCollectorV2 {
 
     async deregister(event, custom) {
         let regValues = { ...this.getProperties(), ...custom };
-        regValues.stackName = event && event.ResourceProperties ?
-            event.ResourceProperties.StackName : regValues.stackName;
+        regValues.stackName = this._resolveStackName(event, regValues);
 
         try {
             return await this._azcollectc.deregister(regValues);
@@ -574,6 +601,12 @@ class AlAwsCollectorV2 {
             logger.warn(`AWSC0011 Collector deregistration failed. ${error}`);
             throw error;
         }
+    }
+
+    _resolveStackName(event, regValues) {
+        const statckName = event && event.ResourceProperties ?
+            event.ResourceProperties.StackName : regValues.stackName;
+        return statckName;
     }
     /**
      * process the event by formatting and sending to alertlogic ingest service
@@ -638,10 +671,8 @@ class AlAwsCollectorV2 {
      * @returns 
      */
     async send(data, compress = true, ingestType = this._ingestType) {
-        var collector = this;
-
         try {
-            await collector.updateApiEndpoints();
+            await this.updateApiEndpoints();
             if (!data) {
                 return;
             }
@@ -655,15 +686,14 @@ class AlAwsCollectorV2 {
                         }
                     });
                 });
-                return await collector._send(data, ingestType);
+                return await this._send(data, ingestType);
             }
             else {
-                return await collector._send(data, ingestType);
+                return await this._send(data, ingestType);
             }
         } catch (error) {
             logger.error(`AWSC0013 Error sending data to Alertlogic ingest: ${error.message}`);
         }
-
     }
     /**
      * Send the different type of data to respective ingest api
@@ -726,7 +756,7 @@ class AlAwsCollectorV2 {
      */
     async sendCollectorStatus(collectorStatusStream, status) {
         let collector = this;
-        await this.updateApiEndpoints();
+        await collector.updateApiEndpoints();
         if (!status || !collector.registered || collector._collectorId == 'NA' || !collectorStatusStream) {
             return null;
         } else {
@@ -743,7 +773,6 @@ class AlAwsCollectorV2 {
                 }
             }
         }
-
     }
 
     /**

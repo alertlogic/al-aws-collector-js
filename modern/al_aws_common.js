@@ -9,18 +9,15 @@ const {
         CloudFormation
     } = require("@aws-sdk/client-cloudformation");
 
-const logger = require('../logger'); 
+const logger = require('../logger');
 const alUtil = require('./util');
-
-
-//Declare CONSTANTS here as needed
 const INGEST_INVALID_ENCODING = {
     code: 400
 };
 const MIN_RANDOM_VALUE = 100;
 const MAX_RANDOM_VALUE = 3000;
 const LAMBDA_CONFIG = {
-        maxAttempts: 10
+    maxAttempts: 10
 };
 const LAMBDA_UPDATE_RETRY = {
     times: 20,
@@ -34,7 +31,7 @@ const LAMBDA_UPDATE_RETRY = {
  * 
  * @returns {Promise} Promise resolving to S3 config changes object
  */
-var getS3ConfigChangesAsync = async function () {
+async function getS3ConfigChangesAsync() {
     var s3 = new S3();
 
     var params = {
@@ -51,27 +48,27 @@ var getS3ConfigChangesAsync = async function () {
         logger.error('AWSC0103 Unable to parse config changes');
         throw error;
     }
-};
+}
 
 /**
  * 
  * @returns 
  */
-var getLambdaConfigAsync = async function () {
+async function getLambdaConfigAsync() {
     var lambda = new Lambda(LAMBDA_CONFIG);
     var params = {
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
     };
     return await lambda.getFunctionConfiguration(params);
-};
+}
 
-var updateLambdaConfigAsync = async function (config) {
+async function updateLambdaConfigAsync(config) {
     await waitForFunctionUpdateAsync();
     var lambda = new Lambda(LAMBDA_CONFIG);
     return await lambda.updateFunctionConfiguration(config);
-};
+}
 
-var waitForFunctionUpdateAsync = async function () {
+async function waitForFunctionUpdateAsync() {
     let lambda = new Lambda(LAMBDA_CONFIG);
     const getConfigParams = {
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME
@@ -88,9 +85,9 @@ var waitForFunctionUpdateAsync = async function () {
             return config;
         }
     }, LAMBDA_UPDATE_RETRY);
-};
+}
 
-var selfUpdateAsync = async function () {
+async function selfUpdateAsync() {
     var params = {
         FunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
         S3Bucket: process.env.aws_lambda_s3_bucket,
@@ -106,8 +103,8 @@ var selfUpdateAsync = async function () {
         logger.info(`AWSC0101 Lambda self-update error: ${JSON.stringify(err)}`);
         throw err;
     }
-};
-var setEnvAsync = async function (vars) {
+}
+async function setEnvAsync(vars) {
     const lambda = new Lambda(LAMBDA_CONFIG);
     try {
         const config = await waitForFunctionUpdateAsync();
@@ -125,8 +122,8 @@ var setEnvAsync = async function (vars) {
         logger.error('AWSC0104 Error getting function config, environment variables were not updated', error);
         throw error;
     }
-};
-var uploadS3ObjectAsync = async function ({ data, key, bucket }) {
+}
+async function uploadS3ObjectAsync({ data, key, bucket }) {
     var s3 = new S3();
     // Setting up S3 putObject parameters
     const parseData = typeof data !== 'string' ? JSON.stringify(data) : data;
@@ -137,12 +134,12 @@ var uploadS3ObjectAsync = async function ({ data, key, bucket }) {
             Body: parseData
         };
         try {
-           return await s3.putObject(params);
+            return await s3.putObject(params);
         } catch (error) {
             throw new Error('AWSC0108 s3 bucketName can not be null or undefined');
         }
     }
-};
+}
 
 /**
  * checks status of CF, returns error in case if it's in failed state, returns error.
@@ -210,7 +207,7 @@ function sleep(ms) {
     return new Promise(res => setTimeout(res, ms));
 }
 
-var arnToName = function (arn) {
+function arnToName(arn) {
     const parsedArn = arn.split(':');
     if (parsedArn.length > 3) {
         const parsedId = parsedArn[parsedArn.length - 1].split('/');
@@ -218,16 +215,16 @@ var arnToName = function (arn) {
     } else {
         return undefined;
     }
-};
+}
 
-var arnToAccId = function (arn) {
+function arnToAccId(arn) {
     const parsedArn = arn.split(':');
     if (parsedArn.length > 4) {
         return parsedArn[4];
     } else {
         return undefined;
     }
-};
+}
 
 function getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
@@ -236,7 +233,7 @@ function getRandomIntInclusive(min, max) {
 }
 
 
-var customBackoff = function (retryCount, err) {
+function customBackoff(retryCount, err) {
     if (err && err.code && err.code.indexOf('Throttling') > -1) {
         logger.debug(`AWSC00011 customBackoff:- retryCount:${retryCount} Error:${err} `);
         const randomValue = getRandomIntInclusive(MIN_RANDOM_VALUE, MAX_RANDOM_VALUE) + (Math.pow(2, retryCount) * 100);
@@ -245,7 +242,7 @@ var customBackoff = function (retryCount, err) {
     } else {
         return 0;
     }
-};
+}
 
 /**
  * 
@@ -258,7 +255,7 @@ async function handleIngestEncodingInvalidError(err, { data, key, bucketName }) 
     if (err.httpErrorCode === INGEST_INVALID_ENCODING.code) {
         let bucket = bucketName ? bucketName : process.env.dl_s3_bucket_name;
         if (bucket) {
-            try { return await uploadS3ObjectAsync({ data, key, bucket }); } 
+            try { return await uploadS3ObjectAsync({ data, key, bucket }); }
             catch (err) {
                 logger.warn(`ALAWS00003 error while uploading the ${key} object in ${bucket} bucket : ${JSON.stringify(err)}`);
             }

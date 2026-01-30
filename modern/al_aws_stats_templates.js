@@ -15,9 +15,7 @@ const moment = require('moment');
 const AWS_STATISTICS_PERIOD_MINUTES = 15;
 const MAX_ERROR_MSG_LEN = 1024;
 
-
-
-var getMetricStatisticsAsync = async function (params) {
+async function getMetricStatisticsAsync(params) {
     var cloudwatch = new CloudWatch({ apiVersion: '2010-08-01' });
     try {
         const data = await cloudwatch.getMetricStatistics(params);
@@ -31,9 +29,9 @@ var getMetricStatisticsAsync = async function (params) {
             StatisticsError: JSON.stringify(err).slice(0, MAX_ERROR_MSG_LEN)
         };
     }
-};
+}
 
-var getLambdaMetrics = async function (functionName, metricName) {
+async function getLambdaMetrics(functionName, metricName) {
     var params = {
         Dimensions: [
             {
@@ -49,7 +47,7 @@ var getLambdaMetrics = async function (functionName, metricName) {
         Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
     return await getMetricStatisticsAsync(params);
-};
+}
 /**
  * 
  * @param {*} functionName - Lambda function name
@@ -58,7 +56,7 @@ var getLambdaMetrics = async function (functionName, metricName) {
  * @param {*} customDimesions - Extra dimentions object other than function name if you added while creating the custom metrics
  * @returns 
  */
-var getCustomMetrics = async function (functionName, metricName, namespace, customDimesions) {
+async function getCustomMetrics(functionName, metricName, namespace, customDimesions) {
     let dimensions =
         [
             {
@@ -79,9 +77,9 @@ var getCustomMetrics = async function (functionName, metricName, namespace, cust
         Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
     return await getMetricStatisticsAsync(params);
-};
+}
 
-var getKinesisMetrics = async function (streamName, metricName) {
+async function getKinesisMetrics(streamName, metricName) {
     var params = {
         Dimensions: [
             {
@@ -97,9 +95,9 @@ var getKinesisMetrics = async function (streamName, metricName) {
         Period: 60 * AWS_STATISTICS_PERIOD_MINUTES   /* 15 mins as seconds */
     };
     return await getMetricStatisticsAsync(params);
-};
+}
 
-var getAllKinesisMetricsFuns = function (streamName) {
+function getAllKinesisMetricsFuns(streamName) {
     return [
         async function () {
             return await getKinesisMetrics(streamName, 'IncomingRecords');
@@ -114,13 +112,12 @@ var getAllKinesisMetricsFuns = function (streamName) {
             return await getKinesisMetrics(streamName, 'WriteProvisionedThroughputExceeded');
         }
     ];
-};
+}
 
 module.exports = {
     getLambdaMetrics: getLambdaMetrics,
     getKinesisMetrics: getKinesisMetrics,
     getMetricStatisticsAsync: getMetricStatisticsAsync,
-
     // functions which return funs:
     getAllKinesisMetricsFuns: getAllKinesisMetricsFuns,
     getCustomMetrics: getCustomMetrics,

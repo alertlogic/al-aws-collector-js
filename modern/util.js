@@ -15,10 +15,8 @@ function stringify(jsonObj) {
 
 /**
  * @function
- *
  * @param {string} code - error code
  * @param {string} message - error message
- *
  * @returns {ErrorMsg} returns error message object
  */
 
@@ -30,7 +28,6 @@ function errorMsg(code, message) {
     };
 }
 /**
- * 
  * @param {*} error 
  * @returns httpErrorCode
  */
