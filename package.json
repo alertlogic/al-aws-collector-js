@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "4.1.35",
+  "version": "4.2.0",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -10,7 +10,7 @@
   "private": false,
   "scripts": {
     "lint": "jshint --exclude \"./node_modules/*\" **/*.js",
-    "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura --reporter=text mocha './test/*_test.js' --colors",
+    "test": "JUNIT_REPORT_PATH=./test/report.xml nyc --reporter=cobertura --reporter=text mocha './test/**/*_test.js' --colors",
     "rel": "npm publish --access=public"
   },
   "main": "index.js",
@@ -35,12 +35,16 @@
     "sinon": "^21.0.1"
   },
   "dependencies": {
-    "@alertlogic/al-collector-js": "3.0.19",
+    "@alertlogic/al-collector-js": "3.0.20",
     "async": "^3.2.6",
     "cfn-response": "1.0.1",
     "deep-equal": "^2.2.3",
     "moment": "^2.30.1",
     "winston": "^3.19.0"
+  },
+   "overrides": {
+    "diff": "^8.0.3",
+    "fast-xml-parser": "^5.3.4"
   },
   "author": "Alert Logic Inc."
 }
