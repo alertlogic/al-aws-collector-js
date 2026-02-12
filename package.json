@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -21,11 +21,11 @@
     }
   ],
   "devDependencies": {
-    "@aws-sdk/client-cloudformation": "^3.967.0",
-    "@aws-sdk/client-cloudwatch": "^3.967.0",
-    "@aws-sdk/client-kms": "^3.967.0",
-    "@aws-sdk/client-lambda": "^3.967.0",
-    "@aws-sdk/client-s3": "^3.967.0",
+    "@aws-sdk/client-cloudformation": "^3.985.0",
+    "@aws-sdk/client-cloudwatch": "^3.985.0",
+    "@aws-sdk/client-kms": "^3.985.0",
+    "@aws-sdk/client-lambda": "^3.985.0",
+    "@aws-sdk/client-s3": "^3.985.0",
     "clone": "^2.1.2",
     "dotenv": "^17.2.3",
     "jshint": "^2.13.6",
@@ -44,7 +44,7 @@
   },
    "overrides": {
     "diff": "^8.0.3",
-    "fast-xml-parser": "^5.3.4"
+    "axios": "^1.13.5"
   },
   "author": "Alert Logic Inc."
 }

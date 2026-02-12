@@ -330,10 +330,10 @@ class AlAwsCollectorV2 {
      */
     async checkin() {
         var collector = this;
-        const context = this._invokeContext;
-        const checks = this._customHealthChecks;
-        const statsFuns = this._customStatsFuns;
-        const collectorStreams = this._streams;
+        const context = collector._invokeContext;
+        const checks = collector._customHealthChecks;
+        const statsFuns = collector._customStatsFuns;
+        const collectorStreams = collector._streams;
         let allFunctions = [
             collector.getHealthStatus(context, checks),
             collector.getStatistics(context, statsFuns)
@@ -533,7 +533,7 @@ class AlAwsCollectorV2 {
 
     async handleEvent(event) {
         let collector = this;
-        let context = this._invokeContext;
+        let context = collector._invokeContext;
         let parsedEvent = collector._parseEvent(event);
 
         switch (parsedEvent.RequestType) {
@@ -577,11 +577,12 @@ class AlAwsCollectorV2 {
      * @returns 
      */
     async deregisterSync(event, custom) {
+        let collector = this;
         try {
-            await this.deregister(event, custom);
-            return response.send(event, this.context, response.SUCCESS);
+            await collector.deregister(event, custom);
+            return response.send(event, collector.context, response.SUCCESS);
         } catch (error) {
-            return response.send(event, this.context, response.FAILED, { Error: error });
+            return response.send(event, collector.context, response.FAILED, { Error: error });
         }
     }
     /**
@@ -592,11 +593,12 @@ class AlAwsCollectorV2 {
      */
 
     async deregister(event, custom) {
-        let regValues = { ...this.getProperties(), ...custom };
-        regValues.stackName = this._resolveStackName(event, regValues);
+        let collector = this;
+        let regValues = { ...collector.getProperties(), ...custom };
+        regValues.stackName = collector._resolveStackName(event, regValues);
 
         try {
-            return await this._azcollectc.deregister(regValues);
+            return await collector._azcollectc.deregister(regValues);
         } catch (error) {
             logger.warn(`AWSC0011 Collector deregistration failed. ${error}`);
             throw error;
