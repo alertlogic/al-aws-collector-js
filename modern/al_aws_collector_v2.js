@@ -8,7 +8,7 @@ const {
     } = require("@aws-sdk/client-kms");
 const moment = require('moment');
 const zlib = require('zlib');
-const response = require('cfn-response');
+const response = require('./cfn_response_fetch');
 const deepEqual = require('deep-equal');
 
 const alCollector = require('@alertlogic/al-collector-js');
@@ -151,26 +151,23 @@ class AlAwsCollectorV2 {
     }
 
     /**
-     * It finalizes the lambda execution by calling context.succeed or context.fail
+     * It finalizes the lambda execution by throwing error or returning success
      * @param {*} error 
      * @param {*} streamType 
      * @param {*} sendStatus 
      * @returns 
      */
     async done(error, streamType, sendStatus = true) {
-        let context = this._invokeContext;
         if (error) {
             const errorString = this.stringifyError(error);
             const stream = streamType ? streamType : this._applicationId ? this._applicationId : this._ingestType;
             const status = this.setCollectorStatus(stream, errorString);
             if (sendStatus) {
                 await this.sendCollectorStatus(stream, status);
-                context.fail(errorString);
-            } else {
-                context.fail(errorString);
             }
+            throw new Error(errorString);
         } else {
-            return context.succeed();
+            return;
         }
     }
     /**
@@ -290,10 +287,11 @@ class AlAwsCollectorV2 {
     async registerSync(event, custom) {
         try {
             await this.register(event, custom);
-            return response.send(event, this.context, response.SUCCESS);
+            await response.send(event, this.context, response.SUCCESS);
         } catch (error) {
             logger.error('AWSC0017 Collector registration failed.');
-            return response.send(event, this.context, response.FAILED, { Error: error });
+            await response.send(event, this.context, response.FAILED, { Error: error });
+            throw error;
         }
     }
 
@@ -533,7 +531,6 @@ class AlAwsCollectorV2 {
 
     async handleEvent(event) {
         let collector = this;
-        let context = collector._invokeContext;
         let parsedEvent = collector._parseEvent(event);
 
         switch (parsedEvent.RequestType) {
@@ -544,7 +541,7 @@ class AlAwsCollectorV2 {
                     case 'Checkin':
                         return await collector.handleCheckin();
                     default:
-                        return context.fail('AWSC0009 Unknown scheduled event detail type: ' + parsedEvent.Type);
+                        throw new Error('AWSC0009 Unknown scheduled event detail type: ' + parsedEvent.Type);
                 }
                 break;
             case 'Create':
@@ -552,7 +549,7 @@ class AlAwsCollectorV2 {
             case 'Delete':
                 return await collector.deregisterSync(event, {});
             default:
-                return context.fail('AWSC0012 Unknown event:' + JSON.stringify(event));
+                throw new Error('AWSC0012 Unknown event:' + JSON.stringify(event));
         }
     }
 
@@ -580,9 +577,10 @@ class AlAwsCollectorV2 {
         let collector = this;
         try {
             await collector.deregister(event, custom);
-            return response.send(event, collector.context, response.SUCCESS);
+            await response.send(event, collector.context, response.SUCCESS);
         } catch (error) {
-            return response.send(event, collector.context, response.FAILED, { Error: error });
+            await response.send(event, collector.context, response.FAILED, { Error: error });
+            throw error;
         }
     }
     /**

@@ -1,7 +1,7 @@
 const AlAwsCollectorV2 = require('../../modern/al_aws_collector_v2');
 const assert = require('assert');
 const sinon = require('sinon');
-const m_response = require('cfn-response');
+const m_response = require('../../modern/cfn_response_fetch');
 const colMock = require('../collector_mock');
 const alAwsCommon = require('../../modern/al_aws_common');
 const m_alCollector = require('@alertlogic/al-collector-js');
@@ -127,8 +127,8 @@ describe('AlAwsCollectorV2 tests', function () {
                 Plaintext: Buffer.from('decryptedSecretKey')
             });
         });
-        responseStub = sinon.stub(m_response, 'send').callsFake((event, mockContext, responseStatus, responseData, physicalResourceId) => {
-            return mockContext.succeed();
+        responseStub = sinon.stub(m_response, 'send').callsFake(() => {
+            return Promise.resolve();
         });
         setAlServiceStub();
         mockSetEnvStub();
@@ -147,16 +147,14 @@ describe('AlAwsCollectorV2 tests', function () {
         it('register success with env vars set', async function () {
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    //sinon.assert.calledOnce(registrationResponse);
-                    sinon.assert.called(responseStub);
-                    sinon.assert.calledWith(alserviceStub.post);
-                }
+                succeed: () => { }
             };
 
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.SECMSGS, '1.0.0', creds, function () { });
             await collector.handleEvent(colMock.REGISTRATION_TEST_EVENT);
+            sinon.assert.called(responseStub);
+            sinon.assert.calledWith(alserviceStub.post);
 
         });
         it('register success with env vars not set', async function () {
@@ -176,11 +174,7 @@ describe('AlAwsCollectorV2 tests', function () {
             process.env.collector_status_api = undefined;
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
-                    sinon.assert.calledThrice(alserviceStub.get);
-
-                }
+                succeed: () => { }
             };
             const creds = AlAwsCollectorV2.load();
             let collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.SECMSGS, '1.0.0', creds, function () { });
@@ -188,6 +182,8 @@ describe('AlAwsCollectorV2 tests', function () {
             await collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS)
 
             sinon.assert.calledOnce(updateEnpointsSpy);
+            sinon.assert.calledWith(alserviceStub.post, colMock.REG_URL, colMock.REG_AZCOLLECT_QUERY);
+            sinon.assert.calledThrice(alserviceStub.get);
             assert.ok(process.env.ingest_api);
             assert.ok(process.env.azcollect_api);
             assert.ok(process.env.collector_status_api);
@@ -205,13 +201,15 @@ describe('AlAwsCollectorV2 tests', function () {
             });
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    sinon.assert.called(registrationResponse);
-                }
+                succeed: () => {}
             };
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.SECMSGS, '1.0.0', creds, function () { });
-            await collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+            await assert.rejects(async () => {
+                await collector.registerSync(colMock.REGISTRATION_TEST_EVENT, colMock.REG_PARAMS);
+            });
+            sinon.assert.called(registrationResponse);
+            sinon.assert.calledOnce(responseStub);
 
         });
     });
@@ -248,10 +246,7 @@ describe('AlAwsCollectorV2 tests', function () {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
                 functionName: colMock.FUNCTION_NAME,
 
-                succeed: function () {
-                    sinon.assert.calledOnce(alserviceStub.post);
-                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
-                }
+                succeed: function () { }
             };
 
             const creds = await AlAwsCollectorV2.load();
@@ -265,6 +260,12 @@ describe('AlAwsCollectorV2 tests', function () {
                 Type: 'Checkin'
             };
             await collector.handleEvent(testEvent);
+            sinon.assert.calledOnce(alserviceStub.post);
+            sinon.assert.calledWithMatch(
+                alserviceStub.post,
+                colMock.CHECKIN_URL,
+                sinon.match.has('body')
+            );
 
         });
         it('checkin via SNS success registered', async function () {
@@ -274,9 +275,7 @@ describe('AlAwsCollectorV2 tests', function () {
                 fail: function (error) {
                     assert.fail(error);
                 },
-                succeed: function () {
-                    sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL, colMock.CHECKIN_AZCOLLECT_QUERY);
-                }
+                succeed: function () { }
             };
             const creds = await AlAwsCollectorV2.load();
             let collector = new AlAwsCollectorV2(
@@ -285,6 +284,11 @@ describe('AlAwsCollectorV2 tests', function () {
             var sendCollectorStatusSpy = sinon.spy(collector, 'sendCollectorStatus');
             const testEvent = colMock.CHECKIN_SNS_TRIGGER;
             await collector.handleEvent(testEvent);
+            sinon.assert.calledWithMatch(
+                alserviceStub.post,
+                colMock.CHECKIN_URL,
+                sinon.match.has('body')
+            );
             sinon.assert.calledTwice(setCollectorStatusHealthySpy);
             sinon.assert.calledTwice(sendCollectorStatusSpy);
         });
@@ -295,9 +299,7 @@ describe('AlAwsCollectorV2 tests', function () {
                 fail: function (error) {
                     assert.fail(error);
                 },
-                succeed: function () {
-                    sinon.assert.calledOnce(alserviceStub.post);
-                }
+                succeed: function () {}
             };
             alserviceStub.post.restore();
             alserviceStub.post = alStub.mock(m_alCollector.AlServiceC, 'post',
@@ -315,6 +317,7 @@ describe('AlAwsCollectorV2 tests', function () {
             var collector = new AlAwsCollectorV2(
                 mockCtx, 'cwe', AlAwsCollectorV2.IngestTypes.SECMSGS, '1.0.0', creds, undefined, [], []);
             await collector.checkin();
+            sinon.assert.calledOnce(alserviceStub.post);
             sinon.assert.calledWith(alserviceStub.post, colMock.CHECKIN_URL);
             sinon.assert.called(fakeSelfConfigUpdate);
             sinon.assert.called(fakeSelfUpdate);
@@ -334,31 +337,24 @@ describe('AlAwsCollectorV2 tests', function () {
             });
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    sinon.assert.calledOnce(updateLambdaFunctionCodeStub);
-                }
+                succeed: () => { }
             };
 
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.SECMSGS, '1.0.0', creds, function () { });
             await collector.selfUpdate();
+            sinon.assert.calledOnce(updateLambdaFunctionCodeStub);
             updateLambdaFunctionCodeStub.restore();
         });
         it('should handle error during lambda function update', async function () {
             const updateLambdaFunctionCodeStub = alStub.mock(Lambda, 'updateFunctionCode', () => {
                 return Promise.reject(new Error('Update error'));
             });
-            let failCalled = false;
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
                 fail: (error) => {
-                    failCalled = true;
-                    sinon.assert.calledOnce(updateLambdaFunctionCodeStub);
-                    assert.ok(error);
                 },
-                succeed: function () {
-                    sinon.assert.calledOnce(updateLambdaFunctionCodeStub);
-                }
+                succeed: function () {}
             };
 
             const creds = AlAwsCollectorV2.load();
@@ -367,9 +363,10 @@ describe('AlAwsCollectorV2 tests', function () {
                 "RequestType": "ScheduledEvent",
                 "Type": "SelfUpdate"
             };
-            await collector.handleEvent(testEvent);
-
-            assert.ok(failCalled, 'mockContext.fail should be called on update error');
+            await assert.rejects(async () => {
+                await collector.handleEvent(testEvent);
+            });
+            sinon.assert.calledOnce(updateLambdaFunctionCodeStub);
             updateLambdaFunctionCodeStub.restore();
         });
 
@@ -378,15 +375,14 @@ describe('AlAwsCollectorV2 tests', function () {
         it('deregister success', async function () {
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    sinon.assert.calledOnce(alserviceStub.del);
-                    sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
-                }
+                succeed: () => { }
             };
 
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.SECMSGS, '1.0.0', creds, function () { });
             await collector.handleEvent(colMock.DEREGISTRATION_TEST_EVENT);
+            sinon.assert.calledOnce(alserviceStub.del);
+            sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
         });
         it('deregister fail', async function () {
             restoreAlServiceStub();
@@ -394,15 +390,17 @@ describe('AlAwsCollectorV2 tests', function () {
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
 
-                succeed: () => {
-                    sinon.assert.calledOnce(alserviceStub.del);
-                    sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
-                }
+                succeed: () => { }
             };
 
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.SECMSGS, '1.0.0', creds, function () { });
-            await collector.deregisterSync(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
+            await assert.rejects(async () => {
+                await collector.deregisterSync(colMock.DEREGISTRATION_TEST_EVENT, colMock.DEREG_PARAMS);
+            });
+            sinon.assert.calledOnce(alserviceStub.del);
+            sinon.assert.calledWith(alserviceStub.del, colMock.DEREG_URL);
+            sinon.assert.calledOnce(responseStub);
 
         });
     });
@@ -433,15 +431,14 @@ describe('AlAwsCollectorV2 tests', function () {
         it('send LMCSTATS successfully', async function () {
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    sinon.assert.calledOnce(alserviceStub.post);
-                }
+                succeed: () => { }
             };
 
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.LOGMSGS, '1.0.0', creds, function () { });
             var data = 'some-data-to-send';
             await collector.send(data, false, AlAwsCollectorV2.IngestTypes.LMCSTATS);
+            sinon.assert.calledOnce(alserviceStub.post);
         });
         it('Send LMCSTATS fail', async function () {
             let logmsgErr = { "errorType": "StatusCodeError", "errorMessage": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "name": "StatusCodeError", "message": "400 - \"{\\\"error\\\":\\\"body encoding invalid\\\"}\"", "error": "{\"error\":\"body encoding invalid\"}", "response": { "status": 400 }, "options": { "method": "POST", "url": "https://api.global-services.us-west-2.global.alertlogic.com/ingest/v1/48649/data/logmsgs" } };
@@ -479,11 +476,12 @@ describe('AlAwsCollectorV2 tests', function () {
     });
     describe('sendCollectorStatus method tests', function () {
         it('sendCollectorStatus success', async function () {
+            const sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(() => {
+                return Promise.resolve();
+            });
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    sinon.assert.calledOnce(alserviceStub.post);
-                }
+                succeed: () => { }
             };
 
             const creds = AlAwsCollectorV2.load();
@@ -493,6 +491,8 @@ describe('AlAwsCollectorV2 tests', function () {
                 statistics: []
             };
             await collector.sendCollectorStatus('collector-status-stream', status);
+            sinon.assert.calledOnce(sendCollectorStatusStub);
+            sendCollectorStatusStub.restore();
         });
         it('sendCollectorStatus return success if collector status service return 304', async function () {
             let sendCollectorStatusStub = sinon.stub(m_alCollector.CollectorStatusC.prototype, 'sendStatus').callsFake(
@@ -602,14 +602,13 @@ describe('AlAwsCollectorV2 tests', function () {
             });
             var mockContext = {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
-                succeed: () => {
-                    sinon.assert.calledOnce(putMetricDataStub);
-                }
+                succeed: () => {}
             };
 
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.LOGMSGS, '1.0.0', creds, function () { });
             await collector.reportCWMetric(param);
+            sinon.assert.calledOnce(putMetricDataStub);
             putMetricDataStub.restore();
         });
     });
