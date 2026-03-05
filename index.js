@@ -17,6 +17,7 @@ module.exports = {
     AlAwsCollectorV2: require('./modern/al_aws_collector_v2'),
     AlAwsCommon: require('./modern/al_aws_common'),
     AlAwsStats: require('./modern/al_aws_stats_templates'),
-    AlUtil: require('./modern/util')
+    AlUtil: require('./modern/util'),
+    CfnResponse : require('./modern/cfn_response_fetch')
 };
 
