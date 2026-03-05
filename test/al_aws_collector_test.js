@@ -782,9 +782,11 @@ describe('al_aws_collector tests', function () {
                 collector.send(data, true,AlAwsCollector.IngestTypes.SECMSGS, function(error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCSecmsgsStub);
-                    zlib.deflate(data, function(compressionErr, compressed) {
+                    const compressedArg = ingestCSecmsgsStub.firstCall.args[0];
+                    assert.ok(Buffer.isBuffer(compressedArg));
+                    zlib.inflate(compressedArg, function (compressionErr, decompressed) {
                         assert.ifError(compressionErr);
-                        sinon.assert.calledWith(ingestCSecmsgsStub, compressed);
+                        assert.equal(decompressed.toString(), data);
                         done();
                     });
                 });
@@ -863,9 +865,11 @@ describe('al_aws_collector tests', function () {
                 collector.send(data, true, AlAwsCollector.IngestTypes.VPCFLOW, function (error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCVpcFlowStub);
-                    zlib.deflate(data, function(compressionErr, compressed) {
+                    const compressedArg = ingestCVpcFlowStub.firstCall.args[0];
+                    assert.ok(Buffer.isBuffer(compressedArg));
+                    zlib.inflate(compressedArg, function (compressionErr, decompressed) {
                         assert.ifError(compressionErr);
-                        sinon.assert.calledWith(ingestCVpcFlowStub, compressed);
+                        assert.equal(decompressed.toString(), data);
                         done();
                     });
                 });
@@ -880,9 +884,11 @@ describe('al_aws_collector tests', function () {
                 collector.send(data, true, AlAwsCollector.IngestTypes.LMCSTATS, function (error) {
                     assert.ifError(error);
                     sinon.assert.calledOnce(ingestCLmcStatsStub);
-                    zlib.deflate(data, function (compressionErr, compressed) {
+                    const compressedArg = ingestCLmcStatsStub.firstCall.args[0];
+                    assert.ok(Buffer.isBuffer(compressedArg));
+                    zlib.inflate(compressedArg, function (compressionErr, decompressed) {
                         assert.ifError(compressionErr);
-                        sinon.assert.calledWith(ingestCLmcStatsStub, compressed);
+                        assert.equal(decompressed.toString(), data);
                         done();
                     });
                 });
