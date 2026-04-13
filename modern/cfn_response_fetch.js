@@ -19,6 +19,7 @@ const response = {
             LogicalResourceId: event.LogicalResourceId,
             Data: responseData || {}
         });
+        console.log('CFN Response body:\n', responseBody);
 
         try {
             // Parse the URL to extract the endpoint and path
@@ -33,7 +34,7 @@ const response = {
                 maxTimeout: 1000
             });
             
-            await client.put(path, {
+            const putResponse = await client.put(path, {
                 body: responseBody,
                 headers: {
                     'content-type': '',
@@ -41,6 +42,7 @@ const response = {
                 },
                 json: false  // Don't parse response as JSON
             });
+            console.log('CFN Response PUT result:', putResponse);
             
         } catch (error) {
             console.error('CFN Response Error:', error);
