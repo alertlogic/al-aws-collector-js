@@ -450,14 +450,17 @@ describe('AlAwsCollectorV2 tests', function () {
                 invokedFunctionArn: colMock.FUNCTION_ARN,
                 fail: (error) => {
                     assert.ok(error);
-                    sinon.assert.calledOnce(ingestCLogmsgsStub);
                 }
             };
 
             const creds = AlAwsCollectorV2.load();
             var collector = new AlAwsCollectorV2(mockContext, 'cwe', AlAwsCollectorV2.IngestTypes.LMCSTATS, '1.0.0', creds, function () { });
             var data = 'some-data-to-send';
-            await collector.send(data, true, AlAwsCollectorV2.IngestTypes.LMCSTATS);
+            await assert.rejects(
+                () => collector.send(data, true, AlAwsCollectorV2.IngestTypes.LMCSTATS)
+            );
+            sinon.assert.calledOnce(ingestCLogmsgsStub);
+            ingestCLogmsgsStub.restore();
         });
         it('send vpcflow success', async function () {
             const creds = await AlAwsCollectorV2.load();
@@ -610,6 +613,88 @@ describe('AlAwsCollectorV2 tests', function () {
             await collector.reportCWMetric(param);
             sinon.assert.calledOnce(putMetricDataStub);
             putMetricDataStub.restore();
+        });
+    });
+
+    describe('processLog method tests', function () {
+        const messages = [{ msg: 'hello' }];
+        const formatFun = (m) => m;
+        let sendLogmsgsStub;
+        let sendLmcstatsStub;
+
+        afterEach(() => {
+            if (m_alCollector.AlLog.buildPayload.restore) {
+                m_alCollector.AlLog.buildPayload.restore();
+            }
+            if (sendLogmsgsStub && sendLogmsgsStub.restore) {
+                sendLogmsgsStub.restore();
+                sendLogmsgsStub = undefined;
+            }
+            if (sendLmcstatsStub && sendLmcstatsStub.restore) {
+                sendLmcstatsStub.restore();
+                sendLmcstatsStub = undefined;
+            }
+        });
+
+        it('processLog rejects and does not send when buildPayload fails', async function () {
+            sinon.stub(m_alCollector.AlLog, 'buildPayload').callsFake((opts, cb) => {
+                return cb(new Error('build failed'));
+            });
+
+            const creds = await AlAwsCollectorV2.load();
+            const collector = new AlAwsCollectorV2(
+                context, 'cwe', AlAwsCollectorV2.IngestTypes.LOGMSGS, '1.0.0', creds, formatFun);
+            const sendSpy = sinon.spy(collector, 'send');
+
+            await assert.rejects(
+                () => collector.processLog(messages, formatFun, null),
+                /build failed/
+            );
+            sinon.assert.notCalled(sendSpy);
+            sendSpy.restore();
+        });
+
+        it('processLog does not call LMCSTATS send when LOGMSGS send fails', async function () {
+            sinon.stub(m_alCollector.AlLog, 'buildPayload').callsFake((opts, cb) => {
+                return cb(null, { payload: 'p', raw_count: 1, raw_bytes: 10 });
+            });
+            const logmsgsErr = {
+                message: 'logmsgs ingest failed',
+                response: { status: 400 }
+            };
+            sendLogmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLogmsgs')
+                .callsFake(() => Promise.reject(logmsgsErr));
+            sendLmcstatsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLmcstats')
+                .callsFake(() => Promise.resolve());
+
+            const creds = await AlAwsCollectorV2.load();
+            const collector = new AlAwsCollectorV2(
+                context, 'cwe', AlAwsCollectorV2.IngestTypes.LOGMSGS, '1.0.0', creds, formatFun);
+
+            await assert.rejects(
+                () => collector.processLog(messages, formatFun, null),
+                (err) => err && err.errorCode === 'AWSC0018'
+            );
+            sinon.assert.calledOnce(sendLogmsgsStub);
+            sinon.assert.notCalled(sendLmcstatsStub);
+        });
+
+        it('processLog sends LOGMSGS and LMCSTATS when both succeed', async function () {
+            sinon.stub(m_alCollector.AlLog, 'buildPayload').callsFake((opts, cb) => {
+                return cb(null, { payload: 'p', raw_count: 1, raw_bytes: 10 });
+            });
+            sendLogmsgsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLogmsgs')
+                .callsFake(() => Promise.resolve());
+            sendLmcstatsStub = sinon.stub(m_alCollector.IngestC.prototype, 'sendLmcstats')
+                .callsFake(() => Promise.resolve());
+
+            const creds = await AlAwsCollectorV2.load();
+            const collector = new AlAwsCollectorV2(
+                context, 'cwe', AlAwsCollectorV2.IngestTypes.LOGMSGS, '1.0.0', creds, formatFun);
+
+            await collector.processLog(messages, formatFun, null);
+            sinon.assert.calledOnce(sendLogmsgsStub);
+            sinon.assert.calledOnce(sendLmcstatsStub);
         });
     });
 });

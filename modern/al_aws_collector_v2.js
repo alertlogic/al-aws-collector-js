@@ -647,19 +647,25 @@ class AlAwsCollectorV2 {
                 filterJson: '',
                 filterRegexp: ''
             };
-            const payloadObject = await new Promise((resolve, reject) => {
-                alCollector.AlLog.buildPayload(
-                    buildPayloadObj, (err, payloadObj) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(payloadObj);
-                        }
-                    });
-            });
-            await collector.send(payloadObject.payload, false, AlAwsCollectorV2.IngestTypes.LOGMSGS);
-            const stats = collector.prepareLmcStats(payloadObject.raw_count, payloadObject.raw_bytes);
-            return await collector.send(JSON.stringify([stats]), true, AlAwsCollectorV2.IngestTypes.LMCSTATS);
+            try {
+                const payloadObject = await new Promise((resolve, reject) => {
+                    alCollector.AlLog.buildPayload(
+                        buildPayloadObj, (err, payloadObj) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(payloadObj);
+                            }
+                        });
+                });
+                // Fail-fast: if LOGMSGS send fails we must NOT call the LMCSTATS send.
+                await collector.send(payloadObject.payload, false, AlAwsCollectorV2.IngestTypes.LOGMSGS);
+                const stats = collector.prepareLmcStats(payloadObject.raw_count, payloadObject.raw_bytes);
+                return await collector.send(JSON.stringify([stats]), true, AlAwsCollectorV2.IngestTypes.LMCSTATS);
+            } catch (error) {
+                logger.error(`AWSC0023 processLog aborted: ${error && error.message ? error.message : error}`);
+                throw error;
+            }
         }
     }
 
@@ -693,6 +699,7 @@ class AlAwsCollectorV2 {
             }
         } catch (error) {
             logger.error(`AWSC0013 Error sending data to Alertlogic ingest: ${error.message}`);
+            throw error;
         }
     }
     /**
