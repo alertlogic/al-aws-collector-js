@@ -42,10 +42,19 @@ const response = {
                 },
                 json: false  // Don't parse response as JSON
             });
-            console.log('CFN Response PUT result:', putResponse);
-            
+
+            // RestServiceClient.put resolves with the response body only. For CFN
+            // pre-signed S3 PUT URLs the body is empty on success, so we only log
+            // body when there is something meaningful to print.
+            if (putResponse && !(typeof putResponse === 'object' && Object.keys(putResponse).length === 0)){
+                const bodySummary = typeof putResponse === 'string' ? putResponse : JSON.stringify(putResponse);
+                console.log(`CFN Response PUT succeeded. status=${responseStatus} body=${bodySummary}`);
+            } else {
+                console.log(`CFN Response PUT succeeded. status=${responseStatus}`);
+            }
+
         } catch (error) {
-            console.error('CFN Response Error:', error);
+            console.error('CFN Response failed.', error);
             // Just log the error and continue
         }
     }
