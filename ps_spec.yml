@@ -17,6 +17,7 @@ stages:
         name: Master Push - Publish
         when:
             - push: ['master']
+            - cli: build
         image: node:24
         compute_size: small
         commands:
