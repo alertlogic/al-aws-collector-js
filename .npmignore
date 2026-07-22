@@ -1,11 +1,11 @@
-node_modules/
+.github/
+
 test/report.xml
 #idea
 .idea/
 nbproject/
 test/ide_test.js
 .env
-*.swp
 
 # Test coverage
 .nyc_output/
