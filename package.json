@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "4.2.9",
+  "version": "4.2.10",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -44,12 +44,19 @@
     "winston": "^3.19.0"
   },
   "overrides": {
-    "diff": "^8.0.3",
+    "diff": "^8.0.4",
     "jshint": {
       "lodash": "^4.17.24",
       "minimatch": "^3.1.4"
     },
-    "serialize-javascript": "^7.0.5"
+    "serialize-javascript": "^7.0.7",
+    "@eslint/config-array": "^0.23.5",
+    "@eslint/eslintrc": "^3.3.6",
+    "brace-expansion": "^5.0.8",
+    "cli": "^1.0.1",
+    "eslint": "^10.8.0",
+    "glob": "^13.0.6",
+    "minimatch": "^10.2.5"
   },
   "author": "Alert Logic Inc."
 }
