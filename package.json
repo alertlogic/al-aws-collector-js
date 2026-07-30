@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "4.2.10",
+  "version": "4.2.11",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -56,7 +56,7 @@
     "cli": "^1.0.1",
     "eslint": "^10.8.0",
     "glob": "^13.0.6",
-    "minimatch": "^10.2.5"
+    "minimatch": "^10.2.6"
   },
   "author": "Alert Logic Inc."
 }
