@@ -21,7 +21,7 @@ function requestWithRedirects(url, maxRedirects = 5) {
     const req = https.get(url, {
       timeout: 15000,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; al-aws-collector-runtime-sync/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; al-aws-collector-js-runtime-sync/1.0)",
         Accept: "text/html,application/xhtml+xml"
       }
     }, (res) => {
@@ -78,7 +78,7 @@ function parseHighestNodeRuntimeMajor(html) {
   while (match !== null) {
     const major = Number(match[1]);
     if (Number.isInteger(major) && major >= 10) {
-        // Check context around the runtime to see if it's marked as "Not scheduled"
+      // Check context around the runtime to see if it's marked as "Not scheduled"
       const matchIndex = match.index;
       const contextStart = Math.max(0, matchIndex - 200);
       const contextEnd = Math.min(html.length, matchIndex + 200);
