@@ -1,6 +1,6 @@
 {
   "name": "@alertlogic/al-aws-collector-js",
-  "version": "4.2.10",
+  "version": "4.2.11",
   "license": "MIT",
   "description": "Alert Logic AWS Collector Common Library",
   "repository": {
@@ -22,15 +22,15 @@
     }
   ],
   "devDependencies": {
-    "@aws-sdk/client-cloudformation": "^3.1094.0",
-    "@aws-sdk/client-cloudwatch": "^3.1094.0",
-    "@aws-sdk/client-kms": "^3.1094.0",
-    "@aws-sdk/client-lambda": "^3.1094.0",
-    "@aws-sdk/client-s3": "^3.1094.0",
+    "@aws-sdk/client-cloudformation": "^3.1104.0",
+    "@aws-sdk/client-cloudwatch": "^3.1104.0",
+    "@aws-sdk/client-kms": "^3.1104.0",
+    "@aws-sdk/client-lambda": "^3.1104.0",
+    "@aws-sdk/client-s3": "^3.1104.0",
     "clone": "^2.1.2",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.2",
     "jshint": "^2.13.6",
-    "mocha": "~11.7.5",
+    "mocha": "~11.7.6",
     "nyc": "^18.0.0",
     "rewire": "^9.0.1",
     "sinon": "^22.1.0"
@@ -52,11 +52,11 @@
     "serialize-javascript": "^7.0.7",
     "@eslint/config-array": "^0.23.5",
     "@eslint/eslintrc": "^3.3.6",
-    "brace-expansion": "^5.0.8",
+    "brace-expansion": "^5.0.9",
     "cli": "^1.0.1",
     "eslint": "^10.8.0",
     "glob": "^13.0.6",
-    "minimatch": "^10.2.5"
+    "minimatch": "^10.2.6"
   },
   "author": "Alert Logic Inc."
 }
