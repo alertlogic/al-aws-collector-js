@@ -1,9 +1,12 @@
 "use strict";
 
 const fs = require("fs");
+const path = require("path");
 const https = require("https");
 
 const RUNTIME_DOCS_URL = "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html";
+const REPO_ROOT = path.resolve(__dirname, "..");
+const STATE_FILE = path.join(REPO_ROOT, ".github", "lambda-runtime.json");
 
 function writeGitHubOutput(key, value) {
   if (!process.env.GITHUB_OUTPUT) {
@@ -96,21 +99,52 @@ function parseHighestNodeRuntimeMajor(html) {
   return Math.max(...majors);
 }
 
+function readStateMajor() {
+  if (!fs.existsSync(STATE_FILE)) {
+    return null;
+  }
 
+  const raw = fs.readFileSync(STATE_FILE, "utf8");
+  const state = JSON.parse(raw);
+  return Number(state.major);
+}
+
+function writeStateMajor(major) {
+  const payload = {
+    major,
+    runtime: `nodejs${major}.x`,
+    updatedAt: new Date().toISOString()
+  };
+  fs.writeFileSync(STATE_FILE, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+}
 
 async function main() {
   try {
     const html = await fetchHtmlWithRetry(RUNTIME_DOCS_URL);
     const targetMajor = parseHighestNodeRuntimeMajor(html);
     const targetRuntime = `nodejs${targetMajor}.x`;
+    const currentMajor = readStateMajor();
+
+    const shouldUpdate = currentMajor !== targetMajor;
+    let changedFiles = [];
+
+    if (shouldUpdate) {
+      writeStateMajor(targetMajor);
+      changedFiles.push(path.relative(REPO_ROOT, STATE_FILE));
+    }
 
     console.log(JSON.stringify({
+      currentMajor,
       targetMajor,
-      targetRuntime
+      targetRuntime,
+      changed: shouldUpdate,
+      changedFiles
     }, null, 2));
 
+    writeGitHubOutput("changed", shouldUpdate ? "true" : "false");
     writeGitHubOutput("target_major", String(targetMajor));
     writeGitHubOutput("target_runtime", targetRuntime);
+    writeGitHubOutput("changed_files", changedFiles.join(","));
   } catch (error) {
     console.error(`::error::${error.message}`);
     process.exit(1);
