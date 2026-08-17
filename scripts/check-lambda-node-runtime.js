@@ -18,7 +18,7 @@ function requestWithRedirects(url, maxRedirects = 5) {
     const req = https.get(url, {
       timeout: 15000,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; al-collector-js-runtime-sync/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; al-aws-collector-js-runtime-sync/1.0)",
         Accept: "text/html,application/xhtml+xml"
       }
     }, (res) => {
