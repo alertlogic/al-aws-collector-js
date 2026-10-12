@@ -1519,7 +1519,7 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
 
     const ACCESS_KEY_ID = 'access_key_id';
     const ENCRYPTED_SECRET_KEY = 'encrypted_secret_key';
-    const ENCRYPTED_SECRET_KEY_BASE64 = new Buffer(ENCRYPTED_SECRET_KEY).toString('base64');
+    const ENCRYPTED_SECRET_KEY_BASE64 = Buffer.from(ENCRYPTED_SECRET_KEY).toString('base64');
     const DECRYPTED_SECRET_KEY = 'secret_key';
 
     before(function(done) {
@@ -1568,7 +1568,7 @@ describe('al_aws_collector tests for setDecryptedCredentials()', function() {
     it('if some error during decryption, function fails', function (done) {
         collectRewire.__set__('AIMS_DECRYPTED_CREDS', undefined);
         process.env.aims_access_key_id = ACCESS_KEY_ID;
-        process.env.aims_secret_key = new Buffer('wrong_key').toString('base64');
+        process.env.aims_secret_key = Buffer.from('wrong_key').toString('base64');
         alStub.mock(KMS, 'decrypt', function (data, callback) {
             assert.equal(data.CiphertextBlob, 'wrong_key');
             return callback('error', 'stack');
