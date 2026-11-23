@@ -8,7 +8,7 @@ stages:
             - pull_request
             - pull_request:
                 trigger_phrase: test it
-        image: node:24
+        image: node:26
         compute_size: small
         commands:
             - make test
@@ -18,7 +18,7 @@ stages:
         when:
             - push: ['master']
             - cli: build
-        image: node:24
+        image: node:26
         compute_size: small
         commands:
             - make test
